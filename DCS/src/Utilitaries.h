@@ -24,40 +24,40 @@
 using namespace omnetpp;
 using namespace std;
 
+class Utilitaries: public cSimpleModule {
+public:
+	virtual void initialize();
+	virtual void handleMessage(cMessage *msg);
+	int combinaisons(int p, int n);
+	vector<vector<int>> comb(int N, int K);
+	unsigned long long computeNbCombinaisons(int n, int k);
+	vector<vector<unsigned int>> EvenCombinations(int N, int k, int M);
 
-class Utilitaries : public cSimpleModule
-{
-  public:
-    virtual void initialize();
-    virtual void handleMessage(cMessage *msg);
-    int combinaisons(int p, int n);
-    vector<vector<int>> comb(int N, int K);
-    unsigned long long  computeNbCombinaisons(int n, int k);
-    vector<vector<unsigned int>> EvenCombinations(int N, int k, int M);
+	vector<vector<unsigned int>> clockEntries;
+	int nbCombinaisons;
 
-
-
-    vector<vector<unsigned int>>  clockEntries;
-    int nbCombinaisons;
-
-    vector<int> channelRandNumber;
-    std::default_random_engine generator, generatorChannelDelay, generatorSendDistribution;
+	vector<int> channelRandNumber;
+	std::default_random_engine generator, generatorChannelDelay,
+			generatorSendDistribution;
 #define CHANNELDELAY 100000. //100000
-    std::normal_distribution<double>* distributionChannelDelayPair = new std::normal_distribution<double>(CHANNELDELAY,20000.); // 20000
-    std::normal_distribution<double>* distributionChannelDelayImpair = new std::normal_distribution<double>(CHANNELDELAY,20000.); // 20000
+	std::normal_distribution<double>* distributionChannelDelayPair =
+			new std::normal_distribution<double>(CHANNELDELAY, 20000.); // 20000
+	std::normal_distribution<double>* distributionChannelDelayImpair =
+			new std::normal_distribution<double>(CHANNELDELAY, 20000.); // 20000
 
-    std::normal_distribution<double>* sendDistribution = new std::normal_distribution<double>(0.,10000.);
+	std::normal_distribution<double>* sendDistribution =
+			new std::normal_distribution<double>(0., 10000.);
 
 #define LOAD_MULTIPLIER 10
-    int LOAD_AMPLITUDE=100;
-    double PEAKSPERDELAY;
-    int nbNodes;
-    int clockLength;
-    int load=20;
+	int LOAD_AMPLITUDE = 100;
+	double PEAKSPERDELAY;
+	unsigned int nbNodes;
+	unsigned int clockLength;
+	unsigned int load = 20;
 //    int baseload=20;
-    int targetload = 0;
-    map<int,vector<int>> m;
-    double delaySend; // en ms
+	unsigned int targetload = 0;
+	map<int, vector<int>> m;
+	double delaySend; // en ms
 
 };
 

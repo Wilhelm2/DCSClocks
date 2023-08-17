@@ -16,7 +16,8 @@
 cplusplus{{
 	#include <vector>
 	#include <omnetpp.h>
-	typedef std::vector<unsigned int> IntVecACK;
+	#include "../Clock/ProbabilisticClock.h"
+	typedef ProbabilisticClock IntVecACK;
 	
 }}
 

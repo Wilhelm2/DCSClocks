@@ -21,12 +21,14 @@
 // cplusplus {{
 	#include <vector>
 	#include <omnetpp.h>
-	typedef std::vector<unsigned int> IntVecApp;
+	#include "../Clock/ProbabilisticClock.h"
+	#include "../Clock/DCS.h"
+	typedef DCS IntVecApp;
 	
 // }}
 
 /**
- * Class generated from <tt>Messages/AppMsg.msg:27</tt> by nedtool.
+ * Class generated from <tt>Messages/AppMsg.msg:29</tt> by nedtool.
  * <pre>
  * packet AppMsg
  * {

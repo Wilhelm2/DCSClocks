@@ -21,12 +21,13 @@
 // cplusplus {{
 	#include <vector>
 	#include <omnetpp.h>
-	typedef std::vector<unsigned int> IntVecACK;
+	#include "../Clock/ProbabilisticClock.h"
+	typedef ProbabilisticClock IntVecACK;
 	
 // }}
 
 /**
- * Class generated from <tt>Messages/AckComponent.msg:27</tt> by nedtool.
+ * Class generated from <tt>Messages/AckComponent.msg:28</tt> by nedtool.
  * <pre>
  * packet AckComponent
  * {

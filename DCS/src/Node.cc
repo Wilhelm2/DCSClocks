@@ -17,18 +17,16 @@
 
 Define_Module(Node);
 
-int Node::idCounter = 0;
+unsigned int Node::idCounter = 0;
 
 void Node::initialize() {
 	cSimpleModule::initialize();
 //    scheduleAt(simTime(), broadcastTimer);
 //    std::cerr<< "Node " << id << " broadcast msg at " << (simTime()+ *(new SimTime( (((float)id)/nbNodes * 2000), SIMTIME_MS)))<<endl;
-	if (DeliveryControl == RECOVERY)
+	if (DeliveryControl == Delivery::DCS)
 		scheduleAt(SimTime(1001, SIMTIME_MS), &componentSizeCheckTimer);
 //    scheduleAt(simTime()+ *(new SimTime( (((float)id)/nbNodes * 5000)+10, SIMTIME_MS)), broadcastTimer); // modification pour que les noeuds commencent progressivement à envoyer des msg ( pas tous au même moment à l'init) +++ AJOUTE 10 ms pour laisser le temps aux msg Init de faire le parcours
 	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DynamicClockSet.ut"));
-	PC.push_back(ProbabilisticClock(ut->clockLength));
-	vectorClockDelivered.resize(ut->nbNodes);
 	control = dynamic_cast<DeliveryController*>(getModuleByPath(
 			"DynamicClockSet.control"));
 	memset(stat.nbMsgCombinaisons, 0, sizeof(stat.nbMsgCombinaisons));
@@ -43,13 +41,12 @@ void Node::initialize() {
 	send(m, outGate);
 
 	DEBUGRECEPTIONTIME.open("data/DEBUGRECEPTIONTIME.dat", std::ios::out);
-
 }
 
 void Node::handleMessage(cMessage *msg) {
 	if (msg == &componentSizeCheckTimer) {
 		PeriodicComponentCheck();
-	} else if (BroadcastNotify* m = dynamic_cast<BroadcastNotify*>(msg)) {
+	} else if (dynamic_cast<BroadcastNotify*>(msg)) {
 		createAppMsg();
 	} else if (AppMsg* m = dynamic_cast<AppMsg*>(msg)) {
 		unsigned int delay = m->getDelay();
@@ -93,13 +90,6 @@ void Node::handleMessage(cMessage *msg) {
 		std::cerr << "MESSAGE DE TYPE INCONNU REÇU !" << msg << endl;
 		throw "error message type";
 	}
-}
-
-simtime_t Node::maxtime(simtime_t t1, simtime_t t2) {
-	if (t1 > t2)
-		return t1;
-	else
-		return t2;
 }
 
 bool Node::expandDecision() {
@@ -181,7 +171,8 @@ void Node::PeriodicComponentCheck() {
 		if (id == 0) {
 			AckComponent * m = new AckComponent();
 			m->setSourceId(id);
-			m->setComponent(PC[nbActiveComponents - 1].clock);
+
+			m->setComponent(clock[nbActiveComponents - 1].clock);
 			m->setAckComponent(nbActiveComponents);
 			send(m, outGate);
 			cerr << "NODE " << id << " SENT MESSAGE TO DISABLE COMPONENT "
@@ -197,7 +188,6 @@ void Node::PeriodicComponentCheck() {
 				<< incrComponent << endl;
 		lastReduce = simTime();
 	}
-	failedHashTestPerSecond = 0;
 	scheduleAt(simTime() + SimTime(1001, SIMTIME_MS), &componentSizeCheckTimer);
 }
 
@@ -214,96 +204,67 @@ int Node::calculateDelay(int idTarget) {
 }
 
 void Node::RecvAppMsg(AppMsg*m) {
-	// recréé le vecteur contenant les différents composants
-	vector<ProbabilisticClock> PCMsg;
-	for (unsigned int i = 0; i * ut->clockLength < m->getPC().size(); i++) {
-		ProbabilisticClock pc;
-		pc.clock = vector<unsigned int>(
-				m->getPC().begin() + i * ut->clockLength,
-				m->getPC().begin() + (i + 1) * ut->clockLength);
-		PCMsg.push_back(pc);
-	}
-
 	receivedTime.push_back(simTime());
 
-	// DELIVERY AT RECEPTION WITHOUT CONTROLING
-	if (DeliveryControl == NOTHING) {
-		if (!control->canDeliver(m->getSourceId(), m->getSeq(), id)) {
-			stat.falseDeliveredMsgHashSuccess++;
-			std::cerr << "MESSAGE DELIVRÉ HORS ORDRE CAUSAL" << endl;
-		}
-		deliverMsg(m->getSourceId(), m->getSeq(), PCMsg, simTime(),
-				m->getIncrComponent()); //delivre le message
-		return;
-	} else if (DeliveryControl == PCcomparision) {
-		if (PC_test(m->getSourceId(), PCMsg, m->getIncrComponent())) {
-			if (!control->canDeliver(m->getSourceId(), m->getSeq(), id))
-				stat.falseDeliveredMsgHashFail++;
-			deliverMsg(m->getSourceId(), m->getSeq(), PCMsg, simTime(),
-					m->getIncrComponent()); //delivre le message
-			iterativeDeliveryPCcomparision();
+	if (DeliveryControl == Delivery::NOTHING) {
+		deliverMsg(m->getSourceId(), m->getSeq(), m->getPC(), simTime(),
+				m->getIncrComponent());
+	} else if (DeliveryControl == Delivery::PCcomparision
+			|| DeliveryControl == Delivery::DCS) {
+
+		if (PC_test(m->getSourceId(), m->getPC(), m->getIncrComponent())) {
+			deliverMsg(m->getSourceId(), m->getSeq(), m->getPC(), simTime(),
+					m->getIncrComponent());
+			iterativeDelivery();
 		} else {
 			dep d(m->getSourceId(), m->getSeq(), simTime(),
-					m->getIncrComponent());
-			pendingMsg.push_back(make_tuple(d, PCMsg));
+					m->getIncrComponent(), m->getPC());
+			pendingMsg.push_back(d);
 		}
 		return;
 	}
-
-	if (PC_test(m->getSourceId(), PCMsg, m->getIncrComponent())) {
-		if (!control->canDeliver(m->getSourceId(), m->getSeq(), id))
-			stat.falseDeliveredMsgHashFail++;
-		deliverMsg(m->getSourceId(), m->getSeq(), PCMsg, simTime(),
-				m->getIncrComponent()); //delivre le message
-		iterativeDelivery();
-	} else {
-		dep d(m->getSourceId(), m->getSeq(), simTime(), m->getIncrComponent());
-		pendingMsg.push_back(make_tuple(d, PCMsg));
-	}
-
 }
 
 void Node::RecvAckComponent(AckComponent* m) {
-	AckRep* mrep = new AckRep();
-	mrep->setAck(true);
-	mrep->setIdDest(m->getSourceId());
-	mrep->setSourceId(id);
-	mrep->setAckComponent(m->getAckComponent());
-	if (m->getAckComponent() > PC.size()) {
-		cerr << "VEUT DELETE UN COMPOSANT QUE LE NOEUD N'A PAS !" << endl;
-		throw "error";
+	bool reply = true;
+
+	if (m->getAckComponent() > clock.size()) {
+		cerr << "Requests to delete component not in local DCS!" << endl;
+		exit(1);
 	}
 	if (incrComponent == m->getAckComponent() - 1
 			|| timeIncrLastComponent > simTime() - SimTime(300, SIMTIME_MS)) {
-		mrep->setAck(false);
+		reply = false;
 		if (incrComponent == m->getAckComponent() - 1)
-			cerr << "Node replies false because increments this component"
-					<< endl;
+			cerr << "Reply no because increments this component" << endl;
 		else
-			cerr
-					<< "Node replies false because lastIncrComponent less than 0.3s ago"
-					<< endl;
+			cerr << "Reply no because incremented less than 0.3s ago" << endl;
 	}
-	for (int i = 0; i < ut->clockLength; i++) {
-		if (PC[m->getAckComponent() - 1][i] != m->getComponent()[i])
-			mrep->setAck(false);
-	}
-	for (tuple<dep, vector<ProbabilisticClock>> pendm : pendingMsg) {
-		if (get<1>(pendm).size() >= m->getAckComponent()) // l'horloge du message contient le composant
-				{
-			for (int i = 0; i < ut->clockLength; i++) {
-				if (get<1>(pendm)[m->getAckComponent() - 1][i]
-						!= m->getComponent()[i]) // compare chaque entrée pour savoir si c'est la bonne
-					mrep->setAck(false);
-			}
+	if (!(m->getComponent() == clock[m->getAckComponent() - 1].clock)) // components are not equal
+		reply = false;
+
+	for (const dep& pendm : pendingMsg) {
+		if (pendm.PC.size() >= m->getAckComponent()) {
+			if (!(m->getComponent() == pendm.PC[m->getAckComponent() - 1].clock)) // components are not equal
+				reply = false;
 		}
 	}
-	cerr << "NODE " << id << " REPLIES TO ACKCOMPONENT WITH " << mrep->getAck()
+	cerr << "Node " << id << " reply to ackComponent: " << reply
 			<< " activeComp " << nbActiveComponents << " localActiveComp "
 			<< nbLocalActiveComponents << endl;
 
-	currentACKRound = true; // bloque l'expand de l'horloge
-	send(mrep, outGate);
+	currentACKRound = true; // blocks DCS dynamics
+	send(createAckRep(reply, m->getSourceId(), m->getAckComponent()), outGate);
+}
+
+AckRep* Node::createAckRep(bool reply, unsigned int destination,
+		unsigned int component) {
+	AckRep* mrep = new AckRep();
+	mrep->setAck(reply);
+	mrep->setIdDest(destination);
+	mrep->setSourceId(id);
+	mrep->setAckComponent(component);
+	return mrep;
 }
 
 void Node::RecvAckRep(AckRep* m) {
@@ -321,15 +282,14 @@ void Node::RecvAckRep(AckRep* m) {
 			nbActiveComponents--;
 		} else
 			msg->setAck(false);
-		cerr << "NODE " << id << " SEND DELETECOMPONENT " << msg->getAck()
+		cerr << "NODE " << id << " Send deleteCompoenent " << msg->getAck()
 				<< endl;
 		send(msg, outGate);
 		ackPositifs = 0;
 		ackNegatifs = 0;
 	} else
-		cerr << "NODE " << id << " RECEIVED " << ackPositifs
-				<< " positive replies and " << ackNegatifs
-				<< " negative replies" << endl;
+		cerr << "NODE " << id << " recv ackPositifs: " << ackPositifs
+				<< ", ackNegatifs: " << ackNegatifs << endl;
 }
 
 void Node::RecvDeleteComponent(DeleteComponent* m) {
@@ -354,7 +314,7 @@ void Node::RecvDeleteComponent(DeleteComponent* m) {
 	iterativeDelivery();
 	return;
 
-	// au lieu de supprimer le composant je l'enlève de l'horloge
+// au lieu de supprimer le composant je l'enlève de l'horloge
 //    cerr<<"NODE "<<id << " RECEIVE DELETECOMPONENT"<<endl;
 //    // supprime le composant de l'horloge
 //    PC.erase(PC.end()-1);
@@ -368,22 +328,16 @@ void Node::RecvDeleteComponent(DeleteComponent* m) {
 
 }
 
-// cherche une dépendance dans DepNext \cup Dep
-bool Node::searchDep(int idDep, int seqDep) {
-	return vectorClockDelivered[idDep] >= seqDep;
-}
-
-bool Node::deliverMsg(int idMsg, int seqMsg, const vector<ProbabilisticClock> v,
-		simtime_t rcvTime, int MsgIncrComponent) {
+bool Node::deliverMsg(int idMsg, int seqMsg, DCS v, simtime_t rcvTime,
+		int MsgIncrComponent) {
 	stat.nbDeliveries++;
+	if (!control->canDeliver(idMsg, seqMsg, id))
+		stat.falseDeliveredMsgHashFail++;
 
-	dep d(idMsg, seqMsg, rcvTime, MsgIncrComponent);
+	dep d(idMsg, seqMsg, rcvTime, MsgIncrComponent, v);
+	delivered.push_back(d);
+	clock.incrementEntries( { MsgIncrComponent }, ut->clockEntries[idMsg]);
 
-	delivered.push_back(make_tuple(d, v));
-	for (int i : ut->clockEntries[idMsg])
-		PC[MsgIncrComponent][i]++;
-
-	vectorClockDelivered[idMsg]++;
 	deliveriesTime.push_back(simTime());
 	return control->recvMessage(idMsg, seqMsg, id, true);
 }
@@ -409,75 +363,32 @@ void Node::iterativeDelivery() //int idMsg, int seqMsg,const vector<int>& v, uns
 	bool deliveredbool = true;
 	while (deliveredbool) {
 		deliveredbool = false;
-
-		// maintenant la liste des messages pendants (dont l'horloge probabiliste disait qu'ils ne pouvaient pas être délivrés)
-		for (vector<std::tuple<dep, vector<ProbabilisticClock>>>::iterator it =
-				pendingMsg.begin(); it != pendingMsg.end();
-		/*fait dans la boucle à cause du erase*/) {
-			dep d = get<0>(*it);
-			vector<ProbabilisticClock> vHorloge = get<1>(*it);
-			if (PC_test(d.id, vHorloge, d.incrComponent)) // test de l'horloge probabiliste
-					{
+		for (vector<dep>::iterator it = pendingMsg.begin();
+				it != pendingMsg.end();
+				/*fait dans la boucle à cause du erase*/) {
+			if (PC_test(it->id, it->PC, it->incrComponent)) {
 				deliveredbool = true;
-
-				if (!control->canDeliver(d.id, d.seq, id))
-					stat.falseDeliveredMsgHashFail++;
-				deliverMsg(d.id, d.seq, vHorloge, d.recvtime, d.incrComponent); //delvire le message
-				it = pendingMsg.erase(it); // apparemment it est décrémenté après avoir été passé à erase mais avant que erase s'exécute
+				deliverMsg(it->id, it->seq, it->PC, it->recvtime,
+						it->incrComponent);
+				it = pendingMsg.erase(it);
 			} else {
 				it++;
 			}
 		}
-
 	}
-	return;
-}
-
-void Node::iterativeDeliveryPCcomparision() {
-	// maintenant délivre d'autres messages si possible
-	bool deliveredbool = true;
-	while (deliveredbool) {
-		deliveredbool = false;
-		for (vector<std::tuple<dep, vector<ProbabilisticClock>>>::iterator it =
-				pendingMsg.begin(); it != pendingMsg.end();
-		/*fait dans la boucle à cause du erase*/) {
-			dep d = get<0>(*it);
-			vector<ProbabilisticClock> vHorloge = get<1>(*it);
-			if (PC_test(d.id, vHorloge, d.incrComponent)) // test de l'horloge probabiliste
-					{
-				deliveredbool = true;
-				if (!control->canDeliver(d.id, d.seq, id))
-					stat.falseDeliveredMsgHashFail++;
-				deliverMsg(d.id, d.seq, vHorloge, d.recvtime, d.incrComponent); //delvire le message
-				it = pendingMsg.erase(it); // apparemment it est décrémenté après avoir été passé à erase mais avant que erase s'exécute
-			} else
-				it++;
-		}
-
-	}
-	return;
 }
 
 AppMsg* Node::createAppMsg() {
 	expandClockCheck();
-	AppMsg *m = new AppMsg("broadcast");
 	seq++;
 	control->sendMessage(id, seq);
 	control->recvMessage(id, seq, id, true);
 
 	stat.nbBroadcasts++;
 	stat.localActiveComponentsWhenBroadcast += nbLocalActiveComponents;
-
-	m->setSeq(seq);
-	m->setSourceId(id);
 	IncrementPC();
-	vector<unsigned int> transmitVector; // vecteur utilisé pour la transmission car des messages ne peuvent apparemment pas contenir des vecteurs vector<vector<int>>
-	transmitVector.reserve(ut->clockLength * nbActiveComponents);
-	for (int i = 0; i < nbActiveComponents; i++)
-		transmitVector.insert(transmitVector.end(), PC[i].clock.begin(),
-				PC[i].clock.end());
-	m->setPC(transmitVector);
-	m->setIncrComponent(incrComponent);
+	AppMsg* m = createAppMsg();
+
 	if (nbActiveComponents < incrComponent) {
 		cerr << "Node " << id
 				<< " SEND A MESSAGE WITH INCRCOMPONENT < NBSENTCOMPONENT"
@@ -486,19 +397,25 @@ AppMsg* Node::createAppMsg() {
 	}
 	clearDelivered();
 
-	stat.controlDataSize += nbActiveComponents * sizeof(PC[0])
-			* sizeof(PC[0][0]); // taille ok faut juste faire attention si simu pas longtemps alors msg broadcast actuel baissent la moyenne
-	dep d(id, seq, simTime(), incrComponent);
-	delivered.push_back(make_tuple(d, PC));
+	stat.controlDataSize += nbActiveComponents * sizeof(ut->clockLength)
+			* sizeof(unsigned int); // taille ok faut juste faire attention si simu pas longtemps alors msg broadcast actuel baissent la moyenne
+	dep d(id, seq, simTime(), incrComponent, clock);
+	delivered.push_back(d);
 	send(m, outGate);
-	vectorClockDelivered[id]++; // CELUI-CI DOIT ÊTRE APRÈS LE CALCUL DU HASH
-//    cout<< simTime()<< " Node " << id << " broadcasts message of seq " << d.seq << " nb activeC "<< nbActiveComponents<<endl;
+	return m;
+}
+
+AppMsg* Node::makeAppMsg() {
+	AppMsg *m = new AppMsg("broadcast");
+	m->setSeq(seq);
+	m->setSourceId(id);
+	m->setIncrComponent(incrComponent);
+	m->setPC(clock);
 	return m;
 }
 
 void Node::IncrementPC() {
-	for (int i : ut->clockEntries[id])
-		PC[incrComponent][i]++;
+	clock.incrementEntries( { incrComponent }, ut->clockEntries[id]);
 	if (incrComponent == nbActiveComponents - 1) // keep track when incremented the last component
 		timeIncrLastComponent = simTime();
 }
@@ -506,7 +423,7 @@ void Node::IncrementPC() {
 void Node::expandClockCheck() {
 	if (nbReceivedLastSecond() == 0)
 		return;
-	if (DeliveryControl != RECOVERY)
+	if (DeliveryControl != Delivery::DCS)
 		return;
 
 	if (!expandDecision())
@@ -527,8 +444,6 @@ void Node::expandClockCheck() {
 }
 
 void Node::expandClockForce() {
-	if (DeliveryControl != RECOVERY)
-		return;
 	if (currentACKRound) {
 		cerr << "CURRENT ACKROUND" << endl;
 	}
@@ -536,65 +451,35 @@ void Node::expandClockForce() {
 	nbActiveComponents++;
 	nbLocalActiveComponents++;
 	incrComponent = rand() % nbLocalActiveComponents;
-	if (nbActiveComponents - 1 < PC.size()) // dans ce cas a déjà un composant local non utilisé
+	if (nbActiveComponents - 1 < clock.size()) // dans ce cas a déjà un composant local non utilisé
 		return;
-	PC.push_back(ProbabilisticClock(ut->clockLength));
+	clock.Add();
 	cerr << "EXPAND THE CLOCK ! Node " << id << " NOW INCREMENTS COMPONENT "
-			<< incrComponent << " number of components " << PC.size() << endl;
+			<< incrComponent << " number of components " << clock.size()
+			<< endl;
 }
 
 //retourne true si pense que c'est ordonné et false sinon
-bool Node::PC_test(int idMsg, const vector<ProbabilisticClock> &PCMsg,
-		int PCMsgIncrComponent) {
-	if (PCMsg.size() > PC.size()) { // adds a component to the clock
+bool Node::PC_test(int idMsg, const DCS &PCMsg, int PCMsgIncrComponent) {
+	if (PCMsg.size() > clock.size()) { // adds a component to the clock
 		if (currentACKRound)
-			return false; // va bufferiser le message puis à la fin du round va appeler iterativeDeliery()
+			return false; // does not expand clock during ackRound
 		expandClockForce();
-	} else if (nbActiveComponents < PCMsg.size()) // vérifie si doit réactiver un composant
-			{
-		for (unsigned int i = 0; i < ut->clockLength; i++) {
-			if (PC[nbActiveComponents][i] < PCMsg[nbActiveComponents][i]) {
-				cerr << "message component clock value is higher" << endl;
-				expandClockForce();
-				break;
-			}
+	} else if (nbActiveComponents < PCMsg.size()) { // checks whether needs to activate a component
+		if (!(PCMsg[nbActiveComponents].clock <= clock[nbActiveComponents].clock)) { // The message's component has an entry higher than the local one
+			cerr << "message component clock value is higher" << endl;
+			expandClockForce();
 		}
 	}
-
-	for (unsigned int i = 0; i < PCMsg.size(); i++) // pour chaque composant
-			{
-		if (i == PCMsgIncrComponent) // le composant incr par l'émetteur du message
-			continue;
-		if (!(PCMsg[i] <= PC[i]))
-			return false;
-	}
-
-	for (unsigned int i = 0; i < ut->clockLength; i++) // pour toutes les entrées de l'horloge
-			{
-		if (PC[PCMsgIncrComponent][i] < PCMsg[PCMsgIncrComponent][i]) { // vérifie si c'est une entrée dans f(idMsg)
-			bool found = false;
-			for (int j : ut->clockEntries[idMsg]) {
-				if (i == j) {
-					if (PC[PCMsgIncrComponent][i]
-							== PCMsg[PCMsgIncrComponent][i] - 1)
-						found = true;
-					else
-						return false;
-				}
-			}
-			if (!found)
-				return false;
-		}
-	}
-	return true;
+	return clock.satisfiesDeliveryConditions(PCMsg, { PCMsgIncrComponent },
+			ut->clockEntries[idMsg]);
 }
 
-// passe la liste delivered et delete les messages anciens. Appelé par le module de statistiques
+// Removes old messages from delivered
 void Node::clearDelivered() {
-	vector<std::tuple<dep, vector<ProbabilisticClock>>>::iterator it =
-			delivered.begin();
+	vector<dep>::iterator it = delivered.begin();
 	while (it != delivered.end()
-			&& get<0>(*it).recvtime < simTime() - SimTime(1, SIMTIME_S))
+			&& it->recvtime < simTime() - SimTime(1, SIMTIME_S))
 		it++;
 	delivered.erase(delivered.begin(), it);
 }

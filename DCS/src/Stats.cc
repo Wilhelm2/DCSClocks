@@ -66,12 +66,12 @@ void Stats::WriteMessageLoad() {
 
 void Stats::WriteClockSize() {
 	int clockSize = 1;
-	int activeComponents = 1;
+	unsigned int activeComponents = 1;
 	float maxActiveComponents = 0;
 	float nbBroadcasts = 0;
 	int nbActiveWhenBroadcast = 0;
 	for (Node*n : nodes) {
-		int nb = n->PC.size();
+		int nb = n->clock.size();
 		clockSize = max(clockSize, nb);
 		activeComponents = max(activeComponents, n->nbActiveComponents);
 		maxActiveComponents += n->nbActiveComponents;
@@ -83,9 +83,9 @@ void Stats::WriteClockSize() {
 	float avgComponents = (
 			nbBroadcasts > 0 ? nbActiveWhenBroadcast / nbBroadcasts : 0);
 	clockSizeFile << simTime() << " " << clockSize << " "
-			<< activeComponents * nodes[0]->PC[0].size() << " "
-			<< maxActiveComponents / ut->nbNodes * nodes[0]->PC[0].size() << " "
-			<< avgComponents * nodes[0]->PC[0].size() << endl;
+			<< activeComponents * ut->clockLength << " "
+			<< maxActiveComponents / ut->nbNodes * ut->clockLength << " "
+			<< avgComponents * ut->clockLength << endl;
 }
 
 void Stats::WriteDeliveries() {
@@ -321,10 +321,9 @@ void Stats::handleMessage(cMessage *msg) {
 	if (simTime() == 300) {
 		WriteTotalNbHashs();
 		WriteAloneNumbers();
-		for (ProbabilisticClock v : nodes[0]->PC)
-			v.printClock();
+		nodes[0]->clock.print();
 		vector<int> countIncrComponents;
-		countIncrComponents.resize(nodes[0]->PC.size(), 0);
+		countIncrComponents.resize(nodes[0]->clock.size(), 0);
 		for (Node* n : nodes) {
 			countIncrComponents[n->incrComponent]++;
 		}

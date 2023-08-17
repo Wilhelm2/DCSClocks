@@ -33,6 +33,7 @@
 #include "Stats.h"
 #include "structures.h"
 #include "Clock/ProbabilisticClock.h"
+#include "Clock/DCS.h"
 using namespace omnetpp;
 using namespace std;
 
@@ -60,35 +61,31 @@ public:
 	void PeriodicComponentCheck();
 	int calculateDelay(int idTarget);
 	AppMsg* createAppMsg();
+	AppMsg* makeAppMsg();
 	void IncrementPC();
 	void expandClockCheck();
 	void expandClockForce();
-	bool AchourErrorDetection(int idMsg, const vector<vector<int>> &PCMsg,
-			int MsgincrComponent);
-	bool PC_test(int id, const vector<ProbabilisticClock> &PC,
-			int PCMsgIncrComponent);
+	bool PC_test(int id, const DCS &PC, int PCMsgIncrComponent);
 	void iterativeDelivery();
-	void iterativeDeliveryPCcomparision();
-	bool searchDep(int id, int seq);
-	bool deliverMsg(int idMsg, int seqMsg, const vector<ProbabilisticClock> v,
-			simtime_t rcvTime, int MsgIncrComponent);
+	bool deliverMsg(int idMsg, int seqMsg, DCS v, simtime_t rcvTime,
+			int MsgIncrComponent);
 	int nbDeliveriesLastSecond();
 	int nbReceivedLastSecond();
 	void RecvAppMsg(AppMsg*m);
 	void RecvAckComponent(AckComponent*m);
+	AckRep* createAckRep(bool reply, unsigned int destination,
+			unsigned int component);
 	void RecvAckRep(AckRep* m);
 	void RecvDeleteComponent(DeleteComponent* m);
 
 	void clearDelivered();
-	void recoveryAdd(vector<int> copieModele, dep d, vector<int> mPC);
-	simtime_t maxtime(simtime_t t1, simtime_t t2);
 	bool expandDecision();
 	bool reduceDecision();
 
 	cMessage componentSizeCheckTimer;
 	unsigned int seq = 0;
 	unsigned int id = idCounter++;
-	vector<ProbabilisticClock> PC;
+	DCS clock;
 	unsigned int incrComponent = 0; // composant de PC incrémenté lorsque broadcast un message
 
 	DeliveryController* control;
@@ -96,47 +93,37 @@ public:
 
 	cGate* outGate;
 
-	vector<tuple<dep, vector<ProbabilisticClock>>> pendingMsg; // msg qui ont pas passé le test PCtest
+	vector<dep> pendingMsg; // msg qui ont pas passé le test PCtest
 
-	vector<tuple<dep, vector<ProbabilisticClock> > > delivered;
+	vector<dep> delivered;
 
-	vector<int> vectorClockDelivered; // pour de meilleures performances
-
-	enum Delivery {
-		NOTHING, PCcomparision, ACHOUR, RECOVERY
+	enum class Delivery {
+		NOTHING, PCcomparision, DCS
 	};
-	int DeliveryControl = RECOVERY;
+	Delivery DeliveryControl = Delivery::PCcomparision;
 
-	hash<string> hasher;
-
-	int failedHashTestPerSecond = 0; // to count the number of failed hash computation per second to decide when to expand the vector clock
 	simtime_t lastExpand = *(new SimTime(-1, SIMTIME_S));
 	simtime_t lastReduce = *(new SimTime(0, SIMTIME_S));
-#define LIMITFAILEDHASHTESTEXPAND 10
-#define LIMITFAILEDHASHTESTREDUCE 1
-#define UPLIMIT_NB_HASHTESTS_SECOND 20
-#define DOWNLIMIT_NB_HASHTESTS_SECOND 10
 #define LIMIT_LOAD_UP 20 // Toutes les tranches de charge de x msg ajoute un composant
 #define LIMIT_LOAD_DOWN 10 // Toutes les tranches de charge de x msg retire un composant
 	simtime_t measureTime = *(new SimTime(500, SIMTIME_MS)); //*(new SimTime(500, SIMTIME_MS)) ; // temps de mesure (moyenne de hashs ces combien measureTime dernieres secondes)
 
-	int ackPositifs = 0;
-	int ackNegatifs = 0;
+	unsigned int ackPositifs = 0;
+	unsigned int ackNegatifs = 0;
 	simtime_t timeIncrLastComponent = 0;
 	bool currentACKRound = false; // pour bloquer l'expand de l'horloge lors d'un round ack (car durant le round se réaffecte à un composant inférieur)
 
-	int nbActiveComponents = 1;
-	int nbLocalActiveComponents = 1;
+	unsigned int nbActiveComponents = 1;
+	unsigned int nbLocalActiveComponents = 1;
 
 	stats_Node stat;
 
 	vector<simtime_t> deliveriesTime;
 	vector<simtime_t> receivedTime;
 
-	static int idCounter;
+	static unsigned int idCounter;
 
 	std::ofstream DEBUGRECEPTIONTIME;
-
 };
 
 #endif

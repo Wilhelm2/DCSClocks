@@ -31,6 +31,7 @@ public:
 	virtual ~ProbabilisticClock();
 
 	bool operator<=(const ProbabilisticClock& PC) const;
+	bool operator==(const ProbabilisticClock& PC) const;
 	unsigned int& operator[](unsigned int i);
 	unsigned int operator[](unsigned int i) const;
 	unsigned int size() const;

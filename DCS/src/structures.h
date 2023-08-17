@@ -3,19 +3,22 @@
 
 #include <vector>
 using namespace std;
+#include "Clock/DCS.h"
 
 typedef struct s_dep {
 	int id;
 	int seq;
 	simtime_t recvtime;
 	int incrComponent;
+	DCS PC;
 
 	s_dep(unsigned int id, unsigned int seq, simtime_t recvtime,
-			unsigned int incrComponent) {
+			unsigned int incrComponent, DCS PC) {
 		this->id = id;
 		this->seq = seq;
 		this->recvtime = recvtime;
 		this->incrComponent = incrComponent;
+		this->PC = PC;
 	}
 } dep;
 
