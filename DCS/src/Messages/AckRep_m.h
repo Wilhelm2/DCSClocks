@@ -23,22 +23,22 @@
  * <pre>
  * packet AckRep
  * {
- *     int idDest;
- *     int sourceId;
- *     int ackComponent;
+ *     unsigned int idDest;
+ *     unsigned int sourceId;
+ *     unsigned int targetId;
+ *     unsigned int ackComponent;
  *     bool ack;
- *     int delay;
  * }
  * </pre>
  */
 class AckRep : public ::omnetpp::cPacket
 {
   protected:
-    int idDest;
-    int sourceId;
-    int ackComponent;
+    unsigned int idDest;
+    unsigned int sourceId;
+    unsigned int targetId;
+    unsigned int ackComponent;
     bool ack;
-    int delay;
 
   private:
     void copy(const AckRep& other);
@@ -57,16 +57,16 @@ class AckRep : public ::omnetpp::cPacket
     virtual void parsimUnpack(omnetpp::cCommBuffer *b) override;
 
     // field getter/setter methods
-    virtual int getIdDest() const;
-    virtual void setIdDest(int idDest);
-    virtual int getSourceId() const;
-    virtual void setSourceId(int sourceId);
-    virtual int getAckComponent() const;
-    virtual void setAckComponent(int ackComponent);
+    virtual unsigned int getIdDest() const;
+    virtual void setIdDest(unsigned int idDest);
+    virtual unsigned int getSourceId() const;
+    virtual void setSourceId(unsigned int sourceId);
+    virtual unsigned int getTargetId() const;
+    virtual void setTargetId(unsigned int targetId);
+    virtual unsigned int getAckComponent() const;
+    virtual void setAckComponent(unsigned int ackComponent);
     virtual bool getAck() const;
     virtual void setAck(bool ack);
-    virtual int getDelay() const;
-    virtual void setDelay(int delay);
 };
 
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const AckRep& obj) {obj.parsimPack(b);}

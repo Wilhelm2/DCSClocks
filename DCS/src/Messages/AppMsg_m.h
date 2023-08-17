@@ -24,20 +24,19 @@
 	#include "../Clock/ProbabilisticClock.h"
 	#include "../Clock/DCS.h"
 	typedef DCS IntVecApp;
-	
 // }}
 
 /**
- * Class generated from <tt>Messages/AppMsg.msg:29</tt> by nedtool.
+ * Class generated from <tt>Messages/AppMsg.msg:28</tt> by nedtool.
  * <pre>
  * packet AppMsg
  * {
  *     unsigned int sourceId;
+ *     unsigned int targetId;
  *     unsigned int seq;
  *     IntVecApp PC;
  *     unsigned int incrComponent;
  *     unsigned long hash;
- *     unsigned int delay; // ms
  * }
  * </pre>
  */
@@ -45,11 +44,11 @@ class AppMsg : public ::omnetpp::cPacket
 {
   protected:
     unsigned int sourceId;
+    unsigned int targetId;
     unsigned int seq;
     IntVecApp PC;
     unsigned int incrComponent;
     unsigned long hash;
-    unsigned int delay;
 
   private:
     void copy(const AppMsg& other);
@@ -70,6 +69,8 @@ class AppMsg : public ::omnetpp::cPacket
     // field getter/setter methods
     virtual unsigned int getSourceId() const;
     virtual void setSourceId(unsigned int sourceId);
+    virtual unsigned int getTargetId() const;
+    virtual void setTargetId(unsigned int targetId);
     virtual unsigned int getSeq() const;
     virtual void setSeq(unsigned int seq);
     virtual IntVecApp& getPC();
@@ -79,8 +80,6 @@ class AppMsg : public ::omnetpp::cPacket
     virtual void setIncrComponent(unsigned int incrComponent);
     virtual unsigned long getHash() const;
     virtual void setHash(unsigned long hash);
-    virtual unsigned int getDelay() const;
-    virtual void setDelay(unsigned int delay);
 };
 
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const AppMsg& obj) {obj.parsimPack(b);}

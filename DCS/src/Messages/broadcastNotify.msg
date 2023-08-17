@@ -17,5 +17,5 @@
 // TODO generated message class
 //
 packet BroadcastNotify {
-	int i;
+	unsigned int i;
 }

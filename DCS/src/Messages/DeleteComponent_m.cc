@@ -183,8 +183,8 @@ DeleteComponent::DeleteComponent(const char *name, short kind) : ::omnetpp::cPac
 {
     this->ack = false;
     this->ackComponent = 0;
-    this->delay = 0;
     this->sourceId = 0;
+    this->targetId = 0;
 }
 
 DeleteComponent::DeleteComponent(const DeleteComponent& other) : ::omnetpp::cPacket(other)
@@ -208,8 +208,8 @@ void DeleteComponent::copy(const DeleteComponent& other)
 {
     this->ack = other.ack;
     this->ackComponent = other.ackComponent;
-    this->delay = other.delay;
     this->sourceId = other.sourceId;
+    this->targetId = other.targetId;
 }
 
 void DeleteComponent::parsimPack(omnetpp::cCommBuffer *b) const
@@ -217,8 +217,8 @@ void DeleteComponent::parsimPack(omnetpp::cCommBuffer *b) const
     ::omnetpp::cPacket::parsimPack(b);
     doParsimPacking(b,this->ack);
     doParsimPacking(b,this->ackComponent);
-    doParsimPacking(b,this->delay);
     doParsimPacking(b,this->sourceId);
+    doParsimPacking(b,this->targetId);
 }
 
 void DeleteComponent::parsimUnpack(omnetpp::cCommBuffer *b)
@@ -226,8 +226,8 @@ void DeleteComponent::parsimUnpack(omnetpp::cCommBuffer *b)
     ::omnetpp::cPacket::parsimUnpack(b);
     doParsimUnpacking(b,this->ack);
     doParsimUnpacking(b,this->ackComponent);
-    doParsimUnpacking(b,this->delay);
     doParsimUnpacking(b,this->sourceId);
+    doParsimUnpacking(b,this->targetId);
 }
 
 bool DeleteComponent::getAck() const
@@ -240,34 +240,34 @@ void DeleteComponent::setAck(bool ack)
     this->ack = ack;
 }
 
-int DeleteComponent::getAckComponent() const
+unsigned int DeleteComponent::getAckComponent() const
 {
     return this->ackComponent;
 }
 
-void DeleteComponent::setAckComponent(int ackComponent)
+void DeleteComponent::setAckComponent(unsigned int ackComponent)
 {
     this->ackComponent = ackComponent;
 }
 
-int DeleteComponent::getDelay() const
-{
-    return this->delay;
-}
-
-void DeleteComponent::setDelay(int delay)
-{
-    this->delay = delay;
-}
-
-int DeleteComponent::getSourceId() const
+unsigned int DeleteComponent::getSourceId() const
 {
     return this->sourceId;
 }
 
-void DeleteComponent::setSourceId(int sourceId)
+void DeleteComponent::setSourceId(unsigned int sourceId)
 {
     this->sourceId = sourceId;
+}
+
+unsigned int DeleteComponent::getTargetId() const
+{
+    return this->targetId;
+}
+
+void DeleteComponent::setTargetId(unsigned int targetId)
+{
+    this->targetId = targetId;
 }
 
 class DeleteComponentDescriptor : public omnetpp::cClassDescriptor
@@ -366,8 +366,8 @@ const char *DeleteComponentDescriptor::getFieldName(int field) const
     static const char *fieldNames[] = {
         "ack",
         "ackComponent",
-        "delay",
         "sourceId",
+        "targetId",
     };
     return (field>=0 && field<4) ? fieldNames[field] : nullptr;
 }
@@ -378,8 +378,8 @@ int DeleteComponentDescriptor::findField(const char *fieldName) const
     int base = basedesc ? basedesc->getFieldCount() : 0;
     if (fieldName[0]=='a' && strcmp(fieldName, "ack")==0) return base+0;
     if (fieldName[0]=='a' && strcmp(fieldName, "ackComponent")==0) return base+1;
-    if (fieldName[0]=='d' && strcmp(fieldName, "delay")==0) return base+2;
-    if (fieldName[0]=='s' && strcmp(fieldName, "sourceId")==0) return base+3;
+    if (fieldName[0]=='s' && strcmp(fieldName, "sourceId")==0) return base+2;
+    if (fieldName[0]=='t' && strcmp(fieldName, "targetId")==0) return base+3;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
@@ -393,9 +393,9 @@ const char *DeleteComponentDescriptor::getFieldTypeString(int field) const
     }
     static const char *fieldTypeStrings[] = {
         "bool",
-        "int",
-        "int",
-        "int",
+        "unsigned int",
+        "unsigned int",
+        "unsigned int",
     };
     return (field>=0 && field<4) ? fieldTypeStrings[field] : nullptr;
 }
@@ -465,9 +465,9 @@ std::string DeleteComponentDescriptor::getFieldValueAsString(void *object, int f
     DeleteComponent *pp = (DeleteComponent *)object; (void)pp;
     switch (field) {
         case 0: return bool2string(pp->getAck());
-        case 1: return long2string(pp->getAckComponent());
-        case 2: return long2string(pp->getDelay());
-        case 3: return long2string(pp->getSourceId());
+        case 1: return ulong2string(pp->getAckComponent());
+        case 2: return ulong2string(pp->getSourceId());
+        case 3: return ulong2string(pp->getTargetId());
         default: return "";
     }
 }
@@ -483,9 +483,9 @@ bool DeleteComponentDescriptor::setFieldValueAsString(void *object, int field, i
     DeleteComponent *pp = (DeleteComponent *)object; (void)pp;
     switch (field) {
         case 0: pp->setAck(string2bool(value)); return true;
-        case 1: pp->setAckComponent(string2long(value)); return true;
-        case 2: pp->setDelay(string2long(value)); return true;
-        case 3: pp->setSourceId(string2long(value)); return true;
+        case 1: pp->setAckComponent(string2ulong(value)); return true;
+        case 2: pp->setSourceId(string2ulong(value)); return true;
+        case 3: pp->setTargetId(string2ulong(value)); return true;
         default: return false;
     }
 }

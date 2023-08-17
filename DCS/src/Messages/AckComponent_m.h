@@ -33,8 +33,8 @@
  * {
  *     IntVecACK component;
  *     unsigned int sourceId;
+ *     unsigned int targetId;
  *     unsigned int ackComponent;
- *     unsigned int delay;
  * }
  * </pre>
  */
@@ -43,8 +43,8 @@ class AckComponent : public ::omnetpp::cPacket
   protected:
     IntVecACK component;
     unsigned int sourceId;
+    unsigned int targetId;
     unsigned int ackComponent;
-    unsigned int delay;
 
   private:
     void copy(const AckComponent& other);
@@ -68,10 +68,10 @@ class AckComponent : public ::omnetpp::cPacket
     virtual void setComponent(const IntVecACK& component);
     virtual unsigned int getSourceId() const;
     virtual void setSourceId(unsigned int sourceId);
+    virtual unsigned int getTargetId() const;
+    virtual void setTargetId(unsigned int targetId);
     virtual unsigned int getAckComponent() const;
     virtual void setAckComponent(unsigned int ackComponent);
-    virtual unsigned int getDelay() const;
-    virtual void setDelay(unsigned int delay);
 };
 
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const AckComponent& obj) {obj.parsimPack(b);}

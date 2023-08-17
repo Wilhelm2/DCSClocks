@@ -17,138 +17,152 @@
 
 Define_Module(CentralCommunicationNode);
 
-void CentralCommunicationNode::initialize() {
+void CentralCommunicationNode::initialize()
+{
 	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DynamicClockSet.ut"));
 	memset(delayIntervals, 0, sizeof(delayIntervals));
-	scheduleAt(simTime() + 1. / ut->load, broadcastTimer);
 	gateToTarget.resize(ut->nbNodes);
+
+	scheduleAt(simTime() + 1. / ut->load, &broadcastTimer);
 }
 
-void CentralCommunicationNode::handleMessage(cMessage *msg) {
-	if (msg == broadcastTimer) {
-		cout << "ORDER NODE " << nodeToBroadcast << " to broadcast a message "
-				<< endl;
-		send(new BroadcastNotify(), gateToTarget[nodeToBroadcast]);
-
-		nodeToBroadcast = (nodeToBroadcast + 1) % ut->nbNodes;
-		scheduleAt(simTime() + 1. / ut->load, broadcastTimer);
-	} else if (Init* m = dynamic_cast<Init*>(msg)) {
-		std::string output = std::regex_replace(
-				m->getArrivalGate()->getFullName(),
-				std::regex("[^0-9]*([0-9]+).*"), std::string("$1"));
-		gateToTarget[m->getSourceId()] = this->gate("neighbour$o",
-				stoi(output));
-		delete msg;
-	} else if (AppMsg* m = dynamic_cast<AppMsg*>(msg)) {
-		for (unsigned int i = 0; i < gateToTarget.size(); i++) {
-			if (i == m->getSourceId()) // ne renvoie pas le msg à la source
-				continue;
-			int delay;
-			if ((ut->channelRandNumber[m->getSourceId()]
-					+ ut->channelRandNumber[i]) % 2 == 0) {
-				delay = (*ut->distributionChannelDelayPair)(
-						ut->generatorChannelDelay);
-				//                stat->nbPairSend ++;
-				nbSendPair++;
-			} else {
-				delay = (*ut->distributionChannelDelayImpair)(
-						ut->generatorChannelDelay);
-				//                stat->nbImpairSend++;
-				nbSendImpair++;
-			}
-			if (delay < 0)
-				delay = 0;
-			incrementDelayIntervals((int) (delay / 10000));
-			m->setDelay(delay);
-			send(m->dup(), gateToTarget[i]);
-		}
-		delete msg;
-	} else if (AckComponent* m = dynamic_cast<AckComponent*>(msg)) {
-		for (unsigned int i = 0; i < gateToTarget.size(); i++) {
-			if (i == m->getSourceId()) // ne renvoie pas le msg à la source
-				continue;
-			int delay;
-			if ((ut->channelRandNumber[m->getSourceId()]
-					+ ut->channelRandNumber[i]) % 2 == 0) {
-				delay = (*ut->distributionChannelDelayPair)(
-						ut->generatorChannelDelay);
-				nbSendPair++;
-				//                stat->nbPairSend ++;
-			} else {
-				delay = (*ut->distributionChannelDelayImpair)(
-						ut->generatorChannelDelay);
-				nbSendImpair++;
-				//                stat->nbImpairSend++;
-			}
-			if (delay < 0)
-				delay = 0;
-			incrementDelayIntervals((int) (delay / 10000));
-
-			send(m->dup(), gateToTarget[i]);
-		}
-		delete msg;
-	} else if (DeleteComponent* m = dynamic_cast<DeleteComponent*>(msg)) {
-		for (unsigned int i = 0; i < gateToTarget.size(); i++) {
-			if (i == m->getSourceId()) // ne renvoie pas le msg à la source
-				continue;
-			int delay;
-			if ((ut->channelRandNumber[m->getSourceId()]
-					+ ut->channelRandNumber[i]) % 2 == 0) {
-				nbSendPair++;
-				delay = (*ut->distributionChannelDelayPair)(
-						ut->generatorChannelDelay);
-				//                stat->nbPairSend ++;
-			} else {
-				delay = (*ut->distributionChannelDelayImpair)(
-						ut->generatorChannelDelay);
-				nbSendImpair++;
-				//                stat->nbImpairSend++;
-			}
-			if (delay < 0)
-				delay = 0;
-			incrementDelayIntervals((int) (delay / 10000));
-
-			send(m->dup(), gateToTarget[i]);
-		}
-		delete msg;
+void CentralCommunicationNode::handleMessage(cMessage *msg)
+{
+	if (msg == &broadcastTimer)
+		handleBroadcastNotify();
+	else if (msg->isSelfMessage()) // delay passed, send to target
+		send(msg, gateToTarget[getTargetId(msg)]);
+	else
+	{
+		if (Init* m = dynamic_cast<Init*>(msg))
+			handleInit(m);
+		else if (AckRep* m = dynamic_cast<AckRep*>(msg))
+			handleAckRep(m);
+		else
+			broadcastMessage(msg);
 	}
+}
 
-	else if (AckRep* m = dynamic_cast<AckRep*>(msg)) {
-		for (unsigned int i = 0; i < gateToTarget.size(); i++) {
-			int delay;
-			if ((ut->channelRandNumber[m->getSourceId()]
-					+ ut->channelRandNumber[i]) % 2 == 0) {
-				nbSendPair++;
-				delay = (*ut->distributionChannelDelayPair)(
-						ut->generatorChannelDelay);
-				//                stat->nbPairSend ++;
-			} else {
-				delay = (*ut->distributionChannelDelayImpair)(
-						ut->generatorChannelDelay);
-				nbSendImpair++;
-				//                stat->nbImpairSend++;
-			}
-			if (delay < 0)
-				delay = 0;
-			incrementDelayIntervals((int) (delay / 10000));
-			if (i == m->getIdDest()) {
-				send(m->dup(), gateToTarget[i]);
-				break;
-			}
-		}
-		delete msg;
-	} else {
-		cerr << "Error message not found" << msg << endl;
+unsigned int CentralCommunicationNode::getSourceId(cMessage* msg)
+{
+	unsigned int sourceId;
+	if (AppMsg* m = dynamic_cast<AppMsg*>(msg))
+		sourceId = m->getSourceId();
+	else if (AckComponent* m = dynamic_cast<AckComponent*>(msg))
+		sourceId = m->getSourceId();
+	else if (DeleteComponent* m = dynamic_cast<DeleteComponent*>(msg))
+		sourceId = m->getSourceId();
+	else if (AckRep* m = dynamic_cast<AckRep*>(msg))
+		sourceId = m->getSourceId();
+	else if (Init* m = dynamic_cast<Init*>(msg))
+		sourceId = m->getSourceId();
+	else
+	{
+		cerr << "Message type not found" << msg << endl;
+		exit(1);
+	}
+	return sourceId;
+}
+
+unsigned int CentralCommunicationNode::getTargetId(cMessage* msg)
+{
+	unsigned int targetId;
+	if (AppMsg* m = dynamic_cast<AppMsg*>(msg))
+		targetId = m->getTargetId();
+	else if (AckComponent* m = dynamic_cast<AckComponent*>(msg))
+		targetId = m->getTargetId();
+	else if (DeleteComponent* m = dynamic_cast<DeleteComponent*>(msg))
+		targetId = m->getTargetId();
+	else if (AckRep* m = dynamic_cast<AckRep*>(msg))
+		targetId = m->getTargetId();
+	else if (Init* m = dynamic_cast<Init*>(msg))
+		targetId = m->getTargetId();
+	else
+	{
+		cerr << "Message type not found" << msg << endl;
+		exit(1);
+	}
+	return targetId;
+}
+
+void CentralCommunicationNode::setTargetId(cMessage* msg, unsigned int targetId)
+{
+	if (AppMsg* m = dynamic_cast<AppMsg*>(msg))
+		m->setTargetId(targetId);
+	else if (AckComponent* m = dynamic_cast<AckComponent*>(msg))
+		m->setTargetId(targetId);
+	else if (DeleteComponent* m = dynamic_cast<DeleteComponent*>(msg))
+		m->setTargetId(targetId);
+	else if (AckRep* m = dynamic_cast<AckRep*>(msg))
+		m->setTargetId(targetId);
+	else if (Init* m = dynamic_cast<Init*>(msg))
+		m->setTargetId(targetId);
+	else
+	{
+		cerr << "Message type not found" << msg << endl;
 		exit(1);
 	}
 }
 
-void CentralCommunicationNode::incrementDelayIntervals(unsigned int entry) {
+void CentralCommunicationNode::handleBroadcastNotify()
+{
+	cout << "ORDER NODE " << nodeToBroadcast << " to broadcast a message " << endl;
+	send(new BroadcastNotify(), gateToTarget[nodeToBroadcast]);
+	nodeToBroadcast = (nodeToBroadcast + 1) % ut->nbNodes;
+	scheduleAt(simTime() + 1. / ut->load, &broadcastTimer);
+}
+
+void CentralCommunicationNode::handleInit(Init* m)
+{
+	std::string output = std::regex_replace(m->getArrivalGate()->getFullName(), std::regex("[^0-9]*([0-9]+).*"),
+			std::string("$1"));
+	gateToTarget[m->getSourceId()] = this->gate("neighbour$o", stoi(output));
+	delete m;
+}
+
+void CentralCommunicationNode::broadcastMessage(cMessage* m)
+{
+	for (unsigned int i = 0; i < gateToTarget.size(); i++)
+	{
+		if (i == getSourceId(m)) // don't send message back to source
+			continue;
+		cMessage* copy = m->dup();
+		setTargetId(copy, i);
+		scheduleAt(SimTime(computeDelay(getSourceId(m), i), SIMTIME_US), m);
+	}
+	delete m;
+}
+
+unsigned int CentralCommunicationNode::computeDelay(unsigned int sourceId, unsigned int targetId)
+{
+	unsigned int delay;
+	if ((ut->channelRandNumber[sourceId] + ut->channelRandNumber[targetId]) % 2 == 0)
+	{
+		delay = (*ut->distributionChannelDelayPair)(ut->generatorChannelDelay);
+		nbSendPair++;
+	}
+	else
+	{
+		delay = (*ut->distributionChannelDelayImpair)(ut->generatorChannelDelay);
+		nbSendImpair++;
+	}
+	incrementDelayIntervals((int) (delay / 10000));
+	return max(delay, (unsigned int) 0);
+}
+
+void CentralCommunicationNode::handleAckRep(AckRep* m)
+{
+	scheduleAt(SimTime(computeDelay(m->getSourceId(), m->getIdDest()), SIMTIME_US), m);
+}
+
+void CentralCommunicationNode::incrementDelayIntervals(unsigned int entry)
+{
 	if (entry < (sizeof(delayIntervals) / sizeof(int)))
 		delayIntervals[entry]++;
-	else {
-		cerr << "INCREMENTS delayIntervals OUT OF BOUND :" << entry
-				<< " bound: " << sizeof(delayIntervals) / sizeof(int) << endl;
-		throw "INCREMENTS delayIntervals OUT OF BOUND";
+	else
+	{
+		cerr << "INCREMENTS delayIntervals OUT OF BOUND :" << entry << " bound: "
+				<< sizeof(delayIntervals) / sizeof(int) << endl;
+		exit(1);
 	}
 }

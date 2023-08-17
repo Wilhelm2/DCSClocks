@@ -15,7 +15,7 @@
 
 packet DeleteComponent{
     bool ack;
-    int ackComponent;
-    int delay;
-    int sourceId;
+    unsigned int ackComponent;
+    unsigned int sourceId;
+    unsigned int targetId;
 }

@@ -24,9 +24,9 @@
  * packet DeleteComponent
  * {
  *     bool ack;
- *     int ackComponent;
- *     int delay;
- *     int sourceId;
+ *     unsigned int ackComponent;
+ *     unsigned int sourceId;
+ *     unsigned int targetId;
  * }
  * </pre>
  */
@@ -34,9 +34,9 @@ class DeleteComponent : public ::omnetpp::cPacket
 {
   protected:
     bool ack;
-    int ackComponent;
-    int delay;
-    int sourceId;
+    unsigned int ackComponent;
+    unsigned int sourceId;
+    unsigned int targetId;
 
   private:
     void copy(const DeleteComponent& other);
@@ -57,12 +57,12 @@ class DeleteComponent : public ::omnetpp::cPacket
     // field getter/setter methods
     virtual bool getAck() const;
     virtual void setAck(bool ack);
-    virtual int getAckComponent() const;
-    virtual void setAckComponent(int ackComponent);
-    virtual int getDelay() const;
-    virtual void setDelay(int delay);
-    virtual int getSourceId() const;
-    virtual void setSourceId(int sourceId);
+    virtual unsigned int getAckComponent() const;
+    virtual void setAckComponent(unsigned int ackComponent);
+    virtual unsigned int getSourceId() const;
+    virtual void setSourceId(unsigned int sourceId);
+    virtual unsigned int getTargetId() const;
+    virtual void setTargetId(unsigned int targetId);
 };
 
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const DeleteComponent& obj) {obj.parsimPack(b);}

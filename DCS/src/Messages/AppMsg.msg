@@ -19,7 +19,6 @@ cplusplus{{
 	#include "../Clock/ProbabilisticClock.h"
 	#include "../Clock/DCS.h"
 	typedef DCS IntVecApp;
-	
 }}
 
 class IntVecApp{
@@ -28,10 +27,10 @@ class IntVecApp{
 
 packet AppMsg{
     unsigned int sourceId;
+    unsigned int targetId;
     unsigned int seq;
     IntVecApp PC;
     unsigned int incrComponent;
     unsigned long hash;
-    unsigned int delay; // ms
 }
     

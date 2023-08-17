@@ -26,14 +26,14 @@
  * //
  * packet BroadcastNotify
  * {
- *     int i;
+ *     unsigned int i;
  * }
  * </pre>
  */
 class BroadcastNotify : public ::omnetpp::cPacket
 {
   protected:
-    int i;
+    unsigned int i;
 
   private:
     void copy(const BroadcastNotify& other);
@@ -52,8 +52,8 @@ class BroadcastNotify : public ::omnetpp::cPacket
     virtual void parsimUnpack(omnetpp::cCommBuffer *b) override;
 
     // field getter/setter methods
-    virtual int getI() const;
-    virtual void setI(int i);
+    virtual unsigned int getI() const;
+    virtual void setI(unsigned int i);
 };
 
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const BroadcastNotify& obj) {obj.parsimPack(b);}

@@ -182,6 +182,7 @@ Register_Class(Init)
 Init::Init(const char *name, short kind) : ::omnetpp::cPacket(name,kind)
 {
     this->sourceId = 0;
+    this->targetId = 0;
 }
 
 Init::Init(const Init& other) : ::omnetpp::cPacket(other)
@@ -204,28 +205,41 @@ Init& Init::operator=(const Init& other)
 void Init::copy(const Init& other)
 {
     this->sourceId = other.sourceId;
+    this->targetId = other.targetId;
 }
 
 void Init::parsimPack(omnetpp::cCommBuffer *b) const
 {
     ::omnetpp::cPacket::parsimPack(b);
     doParsimPacking(b,this->sourceId);
+    doParsimPacking(b,this->targetId);
 }
 
 void Init::parsimUnpack(omnetpp::cCommBuffer *b)
 {
     ::omnetpp::cPacket::parsimUnpack(b);
     doParsimUnpacking(b,this->sourceId);
+    doParsimUnpacking(b,this->targetId);
 }
 
-int Init::getSourceId() const
+unsigned int Init::getSourceId() const
 {
     return this->sourceId;
 }
 
-void Init::setSourceId(int sourceId)
+void Init::setSourceId(unsigned int sourceId)
 {
     this->sourceId = sourceId;
+}
+
+unsigned int Init::getTargetId() const
+{
+    return this->targetId;
+}
+
+void Init::setTargetId(unsigned int targetId)
+{
+    this->targetId = targetId;
 }
 
 class InitDescriptor : public omnetpp::cClassDescriptor
@@ -293,7 +307,7 @@ const char *InitDescriptor::getProperty(const char *propertyname) const
 int InitDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 1+basedesc->getFieldCount() : 1;
+    return basedesc ? 2+basedesc->getFieldCount() : 2;
 }
 
 unsigned int InitDescriptor::getFieldTypeFlags(int field) const
@@ -306,8 +320,9 @@ unsigned int InitDescriptor::getFieldTypeFlags(int field) const
     }
     static unsigned int fieldTypeFlags[] = {
         FD_ISEDITABLE,
+        FD_ISEDITABLE,
     };
-    return (field>=0 && field<1) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<2) ? fieldTypeFlags[field] : 0;
 }
 
 const char *InitDescriptor::getFieldName(int field) const
@@ -320,8 +335,9 @@ const char *InitDescriptor::getFieldName(int field) const
     }
     static const char *fieldNames[] = {
         "sourceId",
+        "targetId",
     };
-    return (field>=0 && field<1) ? fieldNames[field] : nullptr;
+    return (field>=0 && field<2) ? fieldNames[field] : nullptr;
 }
 
 int InitDescriptor::findField(const char *fieldName) const
@@ -329,6 +345,7 @@ int InitDescriptor::findField(const char *fieldName) const
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     int base = basedesc ? basedesc->getFieldCount() : 0;
     if (fieldName[0]=='s' && strcmp(fieldName, "sourceId")==0) return base+0;
+    if (fieldName[0]=='t' && strcmp(fieldName, "targetId")==0) return base+1;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
@@ -341,9 +358,10 @@ const char *InitDescriptor::getFieldTypeString(int field) const
         field -= basedesc->getFieldCount();
     }
     static const char *fieldTypeStrings[] = {
-        "int",
+        "unsigned int",
+        "unsigned int",
     };
-    return (field>=0 && field<1) ? fieldTypeStrings[field] : nullptr;
+    return (field>=0 && field<2) ? fieldTypeStrings[field] : nullptr;
 }
 
 const char **InitDescriptor::getFieldPropertyNames(int field) const
@@ -410,7 +428,8 @@ std::string InitDescriptor::getFieldValueAsString(void *object, int field, int i
     }
     Init *pp = (Init *)object; (void)pp;
     switch (field) {
-        case 0: return long2string(pp->getSourceId());
+        case 0: return ulong2string(pp->getSourceId());
+        case 1: return ulong2string(pp->getTargetId());
         default: return "";
     }
 }
@@ -425,7 +444,8 @@ bool InitDescriptor::setFieldValueAsString(void *object, int field, int i, const
     }
     Init *pp = (Init *)object; (void)pp;
     switch (field) {
-        case 0: pp->setSourceId(string2long(value)); return true;
+        case 0: pp->setSourceId(string2ulong(value)); return true;
+        case 1: pp->setTargetId(string2ulong(value)); return true;
         default: return false;
     }
 }

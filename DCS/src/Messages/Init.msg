@@ -17,5 +17,6 @@
 // TODO generated message class
 //
 packet Init {
-    int sourceId;
+    unsigned int sourceId;
+    unsigned int targetId;
 }

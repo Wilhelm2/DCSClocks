@@ -218,12 +218,12 @@ void BroadcastNotify::parsimUnpack(omnetpp::cCommBuffer *b)
     doParsimUnpacking(b,this->i);
 }
 
-int BroadcastNotify::getI() const
+unsigned int BroadcastNotify::getI() const
 {
     return this->i;
 }
 
-void BroadcastNotify::setI(int i)
+void BroadcastNotify::setI(unsigned int i)
 {
     this->i = i;
 }
@@ -341,7 +341,7 @@ const char *BroadcastNotifyDescriptor::getFieldTypeString(int field) const
         field -= basedesc->getFieldCount();
     }
     static const char *fieldTypeStrings[] = {
-        "int",
+        "unsigned int",
     };
     return (field>=0 && field<1) ? fieldTypeStrings[field] : nullptr;
 }
@@ -410,7 +410,7 @@ std::string BroadcastNotifyDescriptor::getFieldValueAsString(void *object, int f
     }
     BroadcastNotify *pp = (BroadcastNotify *)object; (void)pp;
     switch (field) {
-        case 0: return long2string(pp->getI());
+        case 0: return ulong2string(pp->getI());
         default: return "";
     }
 }
@@ -425,7 +425,7 @@ bool BroadcastNotifyDescriptor::setFieldValueAsString(void *object, int field, i
     }
     BroadcastNotify *pp = (BroadcastNotify *)object; (void)pp;
     switch (field) {
-        case 0: pp->setI(string2long(value)); return true;
+        case 0: pp->setI(string2ulong(value)); return true;
         default: return false;
     }
 }

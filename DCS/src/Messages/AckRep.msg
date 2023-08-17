@@ -15,9 +15,9 @@
 
 packet AckRep
 {
-	int idDest;
-	int sourceId;
-	int ackComponent;
+	unsigned int idDest;
+    unsigned int sourceId;
+    unsigned int targetId;
+	unsigned int ackComponent;
 	bool ack;   
-	int delay;
 }

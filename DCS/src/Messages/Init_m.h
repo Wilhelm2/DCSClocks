@@ -26,14 +26,16 @@
  * //
  * packet Init
  * {
- *     int sourceId;
+ *     unsigned int sourceId;
+ *     unsigned int targetId;
  * }
  * </pre>
  */
 class Init : public ::omnetpp::cPacket
 {
   protected:
-    int sourceId;
+    unsigned int sourceId;
+    unsigned int targetId;
 
   private:
     void copy(const Init& other);
@@ -52,8 +54,10 @@ class Init : public ::omnetpp::cPacket
     virtual void parsimUnpack(omnetpp::cCommBuffer *b) override;
 
     // field getter/setter methods
-    virtual int getSourceId() const;
-    virtual void setSourceId(int sourceId);
+    virtual unsigned int getSourceId() const;
+    virtual void setSourceId(unsigned int sourceId);
+    virtual unsigned int getTargetId() const;
+    virtual void setTargetId(unsigned int targetId);
 };
 
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const Init& obj) {obj.parsimPack(b);}
