@@ -15,25 +15,31 @@
 
 #include "DCS.h"
 
-DCS::DCS() {
+DCS::DCS()
+{
 	Add();
 }
 
-DCS::DCS(unsigned int componentSize) {
+DCS::DCS(unsigned int componentSize)
+{
 	this->componentSize = componentSize;
 }
 
-DCS::~DCS() {
+DCS::~DCS()
+{
 }
 
-component DCS::operator[](unsigned int i) const {
+component DCS::operator[](unsigned int i) const
+{
 	return clock[i];
 }
 
-void DCS::incrementEntries(const vector<unsigned int>& S_incr,
-		const vector<unsigned int>& entries) {
-	for (unsigned int ck : S_incr) {
-		for (unsigned int i : entries) {
+void DCS::incrementEntries(const vector<unsigned int>& S_incr, const vector<unsigned int>& entries)
+{
+	for (unsigned int ck : S_incr)
+	{
+		for (unsigned int i : entries)
+		{
 			if (ck >= clock.size())
 				throw "clock smaller than ck";
 			clock[ck].clock[i]++;
@@ -41,43 +47,51 @@ void DCS::incrementEntries(const vector<unsigned int>& S_incr,
 	}
 }
 
-bool DCS::satisfiesDeliveryConditions(const DCS& compareClock,
-		const vector<unsigned int>& S_incr,
-		const vector<unsigned int>& entries) const {
-	for (unsigned int i = 0; i < size(); i++) {
-		if (std::find(S_incr.begin(), S_incr.end(), i) != S_incr.end()) { // i\in S_incr
-			if (!clock[i].clock.satisfiesDeliveryCondition(
-					compareClock.getComponent(i).clock, entries))
+bool DCS::satisfiesDeliveryConditions(const DCS& compareClock, const vector<unsigned int>& S_incr,
+		const vector<unsigned int>& entries) const
+{
+	for (unsigned int i = 0; i < size(); i++)
+	{
+		if (std::find(S_incr.begin(), S_incr.end(), i) != S_incr.end())
+		{ // i\in S_incr
+			if (!clock[i].clock.satisfiesDeliveryCondition(compareClock.getComponent(i).clock, entries))
 				return false;
-		} else { // i \notin S_incrs
-			if (!clock[i].clock.satisfiesDeliveryCondition(
-					compareClock.getComponent(i).clock, { }))
+		}
+		else
+		{ // i \notin S_incrs
+			if (!clock[i].clock.satisfiesDeliveryCondition(compareClock.getComponent(i).clock, { }))
 				return false;
 		}
 	}
 	return true;
 }
 
-unsigned int DCS::size() const {
+unsigned int DCS::size() const
+{
 	return clock.size();
 }
 
-component DCS::getComponent(unsigned int k) const {
+component DCS::getComponent(unsigned int k) const
+{
 	return clock[k];
 }
 
-bool DCS::prepareComparison(DCS clockCompare) {
+bool DCS::prepareComparison(DCS clockCompare)
+{
 	bool activateComponents = false;
 	// Step 1
-	while (clock.size() < clockCompare.size()) {
+	while (clock.size() < clockCompare.size())
+	{
 		activateComponents = true;
 		Add();
 		activeComponents = clock.size() - 1;
 	}
 
 	// Step 2
-	for (unsigned int i = 0; i < clock.size(); i++) {
-		if (!(clockCompare.clock[i].clock <= clock[i].clock)) {
+	for (unsigned int i = 0; i < clock.size(); i++)
+	{
+		if (!(clockCompare.clock[i].clock <= clock[i].clock))
+		{
 			activateComponents = true;
 			ActivateComponent(i);
 			activeComponents = max(activeComponents, i);
@@ -90,16 +104,19 @@ bool DCS::prepareComparison(DCS clockCompare) {
 	return activateComponents;
 }
 
-void DCS::Add() {
+void DCS::Add()
+{
 	component c = { ProbabilisticClock(componentSize), false };
 	clock.push_back(c);
 }
 
-void DCS::ActivateComponent(unsigned int i) {
+void DCS::ActivateComponent(unsigned int i)
+{
 	clock[i].active = true;
 }
 
-void DCS::print() {
+void DCS::print()
+{
 	for (component PC : clock)
 		PC.clock.printClock();
 }

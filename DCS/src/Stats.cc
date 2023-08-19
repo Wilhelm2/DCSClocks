@@ -17,17 +17,18 @@
 
 Define_Module(Stats);
 
-void Stats::initialize() {
+void Stats::initialize()
+{
 	char tmp[40];
 	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DynamicClockSet.ut"));
 	nextstep = ut->LOAD_AMPLITUDE;
 	step = 200 * 2 / ut->LOAD_AMPLITUDE;
-	for (int i = 0; i < ut->nbNodes; i++) {
+	for (int i = 0; i < ut->nbNodes; i++)
+	{
 		sprintf(tmp, "DynamicClockSet.Nodes[%d]", i);
 		nodes.push_back(dynamic_cast<Node*>(getModuleByPath(tmp)));
 	}
-	control = dynamic_cast<DeliveryController*>(getModuleByPath(
-			"DynamicClockSet.control"));
+	control = dynamic_cast<DeliveryController*>(getModuleByPath("DynamicClockSet.control"));
 
 	scheduleAt(simTime() + *(new SimTime(1, SIMTIME_S)), new cMessage());
 
@@ -40,8 +41,7 @@ void Stats::initialize() {
 	nbHashsFile.open("data/nbHashsFile.dat", std::ios::out);
 	nbMsgHashsFile.open("data/nbMsgHashsFile.dat", std::ios::out);
 	aloneNumbers.open("data/aloneNumbers.dat", std::ios::out);
-	broadcastMessageTimeFile.open("data/broadcastMessageTimeFile.dat",
-			std::ios::out);
+	broadcastMessageTimeFile.open("data/broadcastMessageTimeFile.dat", std::ios::out);
 	messageLoadFile.open("data/messageLoadFile.dat", std::ios::out);
 	clockSizeFile.open("data/clockSizeFile.dat", std::ios::out);
 	deliveriesFile.open("data/deliveriesFile.dat", std::ios::out);
@@ -60,59 +60,60 @@ void Stats::initialize() {
 
 }
 
-void Stats::WriteMessageLoad() {
+void Stats::WriteMessageLoad()
+{
 	messageLoadFile << simTime() << " " << ut->load << endl; // division par 1000 car delaySend en ms
 }
 
-void Stats::WriteClockSize() {
+void Stats::WriteClockSize()
+{
 	int clockSize = 1;
 	unsigned int activeComponents = 1;
 	float maxActiveComponents = 0;
 	float nbBroadcasts = 0;
 	int nbActiveWhenBroadcast = 0;
-	for (Node*n : nodes) {
+	for (Node*n : nodes)
+	{
 		int nb = n->clock.size();
 		clockSize = max(clockSize, nb);
-		activeComponents = max(activeComponents, n->nbActiveComponents);
-		maxActiveComponents += n->nbActiveComponents;
+		activeComponents = max(activeComponents, n->clock.activeComponents);
+		maxActiveComponents += n->clock.activeComponents;
 		nbBroadcasts += n->stat.nbBroadcasts;
 		n->stat.nbBroadcasts = 0;
 		nbActiveWhenBroadcast += n->stat.localActiveComponentsWhenBroadcast;
 		n->stat.localActiveComponentsWhenBroadcast = 0;
 	}
-	float avgComponents = (
-			nbBroadcasts > 0 ? nbActiveWhenBroadcast / nbBroadcasts : 0);
-	clockSizeFile << simTime() << " " << clockSize << " "
-			<< activeComponents * ut->clockLength << " "
-			<< maxActiveComponents / ut->nbNodes * ut->clockLength << " "
-			<< avgComponents * ut->clockLength << endl;
+	float avgComponents = (nbBroadcasts > 0 ? nbActiveWhenBroadcast / nbBroadcasts : 0);
+	clockSizeFile << simTime() << " " << clockSize << " " << activeComponents * ut->clockLength << " "
+			<< maxActiveComponents / ut->nbNodes * ut->clockLength << " " << avgComponents * ut->clockLength << endl;
 }
 
-void Stats::WriteDeliveries() {
+void Stats::WriteDeliveries()
+{
 	int falseDeliveredMsgHashSuccess = 0;
 	int falseDeliveredMsgHashFail = 0;
 	int rightDeliveredMsgHashSuccess = 0;
 	int rightDeliveredMsgHashFail = 0;
-	for (Node* n : nodes) {
+	for (Node* n : nodes)
+	{
 		falseDeliveredMsgHashSuccess += n->stat.falseDeliveredMsgHashSuccess;
 		falseDeliveredMsgHashFail += n->stat.falseDeliveredMsgHashFail;
 		rightDeliveredMsgHashSuccess += n->stat.rightDeliveredMsgHashSuccess;
 		rightDeliveredMsgHashFail += n->stat.rightDeliveredMsgHashFail;
 	}
-	deliveriesFile << simTime() << " " << falseDeliveredMsgHashSuccess << " "
-			<< falseDeliveredMsgHashFail << " " << rightDeliveredMsgHashSuccess
-			<< " " << rightDeliveredMsgHashFail << endl;
-	cerr << "falseDeliveredMsgHashSuccess " << falseDeliveredMsgHashSuccess
-			<< " falseDeliveredMsgHashFail " << falseDeliveredMsgHashFail
-			<< " rightDeliveredMsgHashSuccess " << rightDeliveredMsgHashSuccess
-			<< " rightDeliveredMsgHashFail " << rightDeliveredMsgHashFail
-			<< endl;
+	deliveriesFile << simTime() << " " << falseDeliveredMsgHashSuccess << " " << falseDeliveredMsgHashFail << " "
+			<< rightDeliveredMsgHashSuccess << " " << rightDeliveredMsgHashFail << endl;
+	cerr << "falseDeliveredMsgHashSuccess " << falseDeliveredMsgHashSuccess << " falseDeliveredMsgHashFail "
+			<< falseDeliveredMsgHashFail << " rightDeliveredMsgHashSuccess " << rightDeliveredMsgHashSuccess
+			<< " rightDeliveredMsgHashFail " << rightDeliveredMsgHashFail << endl;
 }
 
-void Stats::WriteTotalNbHashs() {
+void Stats::WriteTotalNbHashs()
+{
 	float totalHashs = 0;
 	int totalDeliveries = 0;
-	for (Node* n : nodes) {
+	for (Node* n : nodes)
+	{
 		nbHashsFile << n->stat.nbHashs << " ";
 		totalHashs += n->stat.nbHashs;
 		totalDeliveries += n->stat.nbDeliveries;
@@ -122,61 +123,41 @@ void Stats::WriteTotalNbHashs() {
 	nbHashsFile << totalHashs / totalDeliveries << endl;
 }
 
-void Stats::WriteMsgHashs() {
-	int totaldeliveries = 0;
-	int totalnbHashs = 0;
-	if (nodes[0]->nbDeliveriesLastSecond() == 0)
-		return;
-	for (Node* n : nodes) {
-		totaldeliveries += n->stat.nbDeliveries;
-		totalnbHashs += n->stat.nbHashs;
-		/*        std::cerr<< "NODE " << n->id << " DELIVERIES " << n->stat.nbDeliveries << " COMPUTEDHASHS " << n->stat.nbHashs<< " size of PC " << n->PC.size()<< " incrComponent " << n->incrComponent<< " averageHashsPerScond ";
-		 if(n->nbDeliveriesLastSecond())
-		 cerr<< n->nbHashsTestsPerSecond() / n->nbDeliveriesLastSecond()<< " active components " << n->nbActiveComponents<<endl;
-		 else
-		 cerr<< 0 << " active components " << n->nbActiveComponents<<endl;
-		 */}
-
-	if (totalnbHashs > 0) {
-		nbMsgHashsFile << ((float) totalnbHashs) / totaldeliveries << endl; // taille moyenne de msg par hash calculé
-		cout << "Nombre de hashs moyen par delivery"
-				<< ((float) totalnbHashs) / totaldeliveries << endl; // taille moyenne de msg par hash calculé
-	}
-}
-
-void Stats::WriteAloneNumbers() {
+void Stats::WriteAloneNumbers()
+{
 	int totalMessages = 0;
 	int totalDeliveredMsg = 0;
 	float totalControlDataSize = 0;
 	float totalNbFalseDeliveries = 0;
-	for (Node* n : nodes) {
+	for (Node* n : nodes)
+	{
 		totalMessages += n->seq;
 		totalDeliveredMsg += n->stat.nbDeliveries;
 		totalControlDataSize += n->stat.controlDataSize;
 		totalNbFalseDeliveries += n->stat.falseDeliveredMsgHashFail;
 		totalNbFalseDeliveries += n->stat.falseDeliveredMsgHashSuccess;
 	}
-	if (totalDeliveredMsg == 0) {
+	if (totalDeliveredMsg == 0)
+	{
 		aloneNumbers << "0 0" << endl;
 		return;
 	}
 
-	aloneNumbers << totalControlDataSize / totalMessages << " "
-			<< totalNbFalseDeliveries / totalDeliveredMsg << endl;
-	std::cerr << "Number of false delivered messages " << totalNbFalseDeliveries
-			<< endl;
-	std::cerr << "RATE of false delivered messages "
-			<< totalNbFalseDeliveries / totalDeliveredMsg << endl;
+	aloneNumbers << totalControlDataSize / totalMessages << " " << totalNbFalseDeliveries / totalDeliveredMsg << endl;
+	std::cerr << "Number of false delivered messages " << totalNbFalseDeliveries << endl;
+	std::cerr << "RATE of false delivered messages " << totalNbFalseDeliveries / totalDeliveredMsg << endl;
 
 }
 
-void Stats::clearDelivered() {
+void Stats::clearDelivered()
+{
 	for (Node* n : nodes)
 		n->clearDelivered();
 }
 
 #define MAXLOAD 200
-void Stats::loadHandler() {
+void Stats::loadHandler()
+{
 	/*
 	 cerr<<simTime()<< " ";
 	 ut->load = 100;
@@ -232,7 +213,8 @@ void Stats::loadHandler() {
 	 */
 
 	// load random
-	if (fmod(simTime().dbl(), 10) == 0) {
+	if (fmod(simTime().dbl(), 10) == 0)
+	{
 
 		if (simTime() < 60)
 			ut->targetload = rand() % 30;
@@ -250,8 +232,7 @@ void Stats::loadHandler() {
 			ut->targetload = rand() % 50;
 
 		step = (ut->targetload - ut->load) / 10;
-		cerr << "NEW TARGET LOAD FROM " << ut->load << " TO LOAD "
-				<< ut->targetload << endl;
+		cerr << "NEW TARGET LOAD FROM " << ut->load << " TO LOAD " << ut->targetload << endl;
 //        ut->load = (ut->targetload - ut->baseload) / 10;
 	}
 	ut->load += step;
@@ -259,7 +240,8 @@ void Stats::loadHandler() {
 	cerr << " load is equal to " << ut->load << endl;
 }
 
-void Stats::handleMessage(cMessage *msg) {
+void Stats::handleMessage(cMessage *msg)
+{
 
 	std::cerr << "TIME " << simTime() << endl;
 	scheduleAt(simTime() + *(new SimTime(1, SIMTIME_S)), msg);
@@ -281,16 +263,20 @@ void Stats::handleMessage(cMessage *msg) {
 	memset(msgSize, 0, sizeof(msgSize));
 	memset(nbMsgCombinaisons, 0, (LIMIT_HASHS + 1) * sizeof(int));
 	cout << "MSGSIZE " << endl;
-	for (int i = 0; i < 2000; i++) {
-		for (Node* n : nodes) {
+	for (int i = 0; i < 2000; i++)
+	{
+		for (Node* n : nodes)
+		{
 			msgSize[i] += n->stat.msgSize[i];
 		}
 		cout << msgSize[i] << "\t";
 	}
 	cout << endl;
 	cout << "nbMsgCombinations " << endl;
-	for (int i = 0; i < LIMIT_HASHS; i++) {
-		for (Node* n : nodes) {
+	for (int i = 0; i < LIMIT_HASHS; i++)
+	{
+		for (Node* n : nodes)
+		{
 			nbMsgCombinaisons[i] += n->stat.nbMsgCombinaisons[i];
 		}
 		cout << nbMsgCombinaisons[i] << "\t";
@@ -303,7 +289,8 @@ void Stats::handleMessage(cMessage *msg) {
 	cerr << endl;
 
 	std::cerr << "pendingmsg size " << endl;
-	for (Node* n : nodes) {
+	for (Node* n : nodes)
+	{
 		if (n->pendingMsg.size() > 500)
 			cerr << n->id << ":" << n->pendingMsg.size() << "\t";
 		else
@@ -311,20 +298,21 @@ void Stats::handleMessage(cMessage *msg) {
 	}
 	cerr << endl;
 
-	WriteMsgHashs();
 	WriteMessageLoad();
 	WriteClockSize();
 	WriteDeliveries();
 
 	loadHandler();
 
-	if (simTime() == 300) {
+	if (simTime() == 300)
+	{
 		WriteTotalNbHashs();
 		WriteAloneNumbers();
 		nodes[0]->clock.print();
 		vector<int> countIncrComponents;
 		countIncrComponents.resize(nodes[0]->clock.size(), 0);
-		for (Node* n : nodes) {
+		for (Node* n : nodes)
+		{
 			countIncrComponents[n->incrComponent]++;
 		}
 		for (int i = 0; i < countIncrComponents.size(); i++)

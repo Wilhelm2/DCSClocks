@@ -20,21 +20,21 @@
 
 #include "ProbabilisticClock.h"
 
-typedef struct s_component {
+typedef struct s_component
+{
 	ProbabilisticClock clock;
 	bool active;
 } component;
 
-class DCS {
+class DCS
+{
 public:
 	DCS();
 	DCS(unsigned int componentSize);
 	virtual ~DCS();
 	component operator[](unsigned int i) const;
-	void incrementEntries(const vector<unsigned int>& S_incr,
-			const vector<unsigned int>& entries);
-	bool satisfiesDeliveryConditions(const DCS& compareClock,
-			const vector<unsigned int>& S_incr,
+	void incrementEntries(const vector<unsigned int>& S_incr, const vector<unsigned int>& entries);
+	bool satisfiesDeliveryConditions(const DCS& compareClock, const vector<unsigned int>& S_incr,
 			const vector<unsigned int>& entries) const;
 	unsigned int size() const;
 	component getComponent(unsigned int k) const;

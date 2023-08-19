@@ -37,7 +37,8 @@
 using namespace omnetpp;
 using namespace std;
 
-typedef struct s_stats_Node {
+typedef struct s_stats_Node
+{
 	int falseDeliveredMsgHashSuccess = 0;
 	int falseDeliveredMsgHashFail = 0;
 	int rightDeliveredMsgHashSuccess = 0;
@@ -54,42 +55,76 @@ typedef struct s_stats_Node {
 	int localActiveComponentsWhenBroadcast = 0;
 } stats_Node;
 
-class Node: public cSimpleModule {
+struct ackRoundData
+{
+	unsigned int positiveAck = 0;
+	unsigned int negativeAck = 0;
+	bool inAckRound = false;
+
+	void beginAckRound()
+	{
+		positiveAck = 1; // for the node which launched the round
+		negativeAck = 0;
+		inAckRound = true;
+	}
+
+	void reset()
+	{
+		positiveAck = negativeAck = 0;
+		inAckRound = false;
+	}
+
+	void getReply(bool reply)
+	{
+		if (reply)
+			positiveAck++;
+		else
+			negativeAck++;
+	}
+	unsigned int gotReplies()
+	{
+		return positiveAck + negativeAck;
+	}
+};
+
+class Node: public cSimpleModule
+{
 public:
 	virtual void initialize() override;
+	void setOutGate();
+	void sendInitMessage();
 	virtual void handleMessage(cMessage *msg) override;
-	void PeriodicComponentCheck();
-	int calculateDelay(int idTarget);
+
+	AppMsg* sendAppMsg();
 	AppMsg* createAppMsg();
-	AppMsg* makeAppMsg();
+	void RecvAppMsg(AppMsg*m);
+	bool PC_test(unsigned int id, const DCS &PC, unsigned int PCMsgIncrComponent);
 	void IncrementPC();
+	bool deliverMsg(unsigned int idMsg, unsigned int seqMsg, DCS v, simtime_t rcvTime, unsigned int MsgIncrComponent);
+	void iterativeDelivery();
+
+	void PeriodicComponentCheck();
+	bool expandDecision();
+	bool reduceDecision();
+	int nbReceivedLastSecond();
 	void expandClockCheck();
 	void expandClockForce();
-	bool PC_test(int id, const DCS &PC, int PCMsgIncrComponent);
-	void iterativeDelivery();
-	bool deliverMsg(int idMsg, int seqMsg, DCS v, simtime_t rcvTime,
-			int MsgIncrComponent);
-	int nbDeliveriesLastSecond();
-	int nbReceivedLastSecond();
-	void RecvAppMsg(AppMsg*m);
+
 	void RecvAckComponent(AckComponent*m);
-	AckRep* createAckRep(bool reply, unsigned int destination,
-			unsigned int component);
+	AckRep* createAckRep(bool reply, unsigned int destination, unsigned int component);
 	void RecvAckRep(AckRep* m);
 	void RecvDeleteComponent(DeleteComponent* m);
 
 	void clearDelivered();
-	bool expandDecision();
-	bool reduceDecision();
 
 	cMessage componentSizeCheckTimer;
-	unsigned int seq = 0;
-	unsigned int id = idCounter++;
-	DCS clock;
-	unsigned int incrComponent = 0; // composant de PC incrémenté lorsque broadcast un message
-
 	DeliveryController* control;
 	Utilitaries* ut;
+	unsigned int seq = 0;
+	unsigned int id = idCounter++;
+
+	DCS clock;
+	unsigned int incrComponent = 0; // Incremented component when broadcasting a message
 
 	cGate* outGate;
 
@@ -97,7 +132,8 @@ public:
 
 	vector<dep> delivered;
 
-	enum class Delivery {
+	enum class Delivery
+	{
 		NOTHING, PCcomparision, DCS
 	};
 	Delivery DeliveryControl = Delivery::PCcomparision;
@@ -108,17 +144,13 @@ public:
 #define LIMIT_LOAD_DOWN 10 // Toutes les tranches de charge de x msg retire un composant
 	simtime_t measureTime = *(new SimTime(500, SIMTIME_MS)); //*(new SimTime(500, SIMTIME_MS)) ; // temps de mesure (moyenne de hashs ces combien measureTime dernieres secondes)
 
-	unsigned int ackPositifs = 0;
-	unsigned int ackNegatifs = 0;
+	struct ackRoundData ackData;
 	simtime_t timeIncrLastComponent = 0;
-	bool currentACKRound = false; // pour bloquer l'expand de l'horloge lors d'un round ack (car durant le round se réaffecte à un composant inférieur)
 
-	unsigned int nbActiveComponents = 1;
 	unsigned int nbLocalActiveComponents = 1;
 
 	stats_Node stat;
 
-	vector<simtime_t> deliveriesTime;
 	vector<simtime_t> receivedTime;
 
 	static unsigned int idCounter;
