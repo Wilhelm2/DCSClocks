@@ -41,6 +41,7 @@ public:
 	bool prepareComparison(DCS clockCompare);
 	void Add();
 	void ActivateComponent(unsigned int i);
+	void DeactivateComponent(unsigned int i);
 	void print();
 
 	vector<component> clock;

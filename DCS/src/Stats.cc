@@ -74,10 +74,10 @@ void Stats::WriteClockSize()
 	int nbActiveWhenBroadcast = 0;
 	for (Node*n : nodes)
 	{
-		int nb = n->clock.size();
+		int nb = n->clockManagment.clock.size();
 		clockSize = max(clockSize, nb);
-		activeComponents = max(activeComponents, n->clock.activeComponents);
-		maxActiveComponents += n->clock.activeComponents;
+		activeComponents = max(activeComponents, n->clockManagment.clock.activeComponents);
+		maxActiveComponents += n->clockManagment.clock.activeComponents;
 		nbBroadcasts += n->stat.nbBroadcasts;
 		n->stat.nbBroadcasts = 0;
 		nbActiveWhenBroadcast += n->stat.localActiveComponentsWhenBroadcast;
@@ -308,12 +308,12 @@ void Stats::handleMessage(cMessage *msg)
 	{
 		WriteTotalNbHashs();
 		WriteAloneNumbers();
-		nodes[0]->clock.print();
+		nodes[0]->clockManagment.clock.print();
 		vector<int> countIncrComponents;
-		countIncrComponents.resize(nodes[0]->clock.size(), 0);
+		countIncrComponents.resize(nodes[0]->clockManagment.clock.size(), 0);
 		for (Node* n : nodes)
 		{
-			countIncrComponents[n->incrComponent]++;
+			countIncrComponents[n->clockManagment.incrComponent]++;
 		}
 		for (int i = 0; i < countIncrComponents.size(); i++)
 			cerr << i << ":" << countIncrComponents[i] << endl;

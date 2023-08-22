@@ -115,6 +115,11 @@ void DCS::ActivateComponent(unsigned int i)
 	clock[i].active = true;
 }
 
+void DCS::DeactivateComponent(unsigned int i)
+{
+	clock[i].active = false;
+}
+
 void DCS::print()
 {
 	for (component PC : clock)

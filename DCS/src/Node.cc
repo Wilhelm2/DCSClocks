@@ -23,7 +23,7 @@ void Node::initialize()
 {
 	cSimpleModule::initialize();
 	if (DeliveryControl == Delivery::DCS)
-		scheduleAt(SimTime(1001, SIMTIME_MS), &componentSizeCheckTimer);
+		scheduleAt(SimTime(1001, SIMTIME_MS), &clockManagment.componentSizeCheckTimer);
 	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DynamicClockSet.ut"));
 	control = dynamic_cast<DeliveryController*>(getModuleByPath("DynamicClockSet.control"));
 	memset(stat.nbMsgCombinaisons, 0, sizeof(stat.nbMsgCombinaisons));
@@ -51,7 +51,7 @@ void Node::sendInitMessage()
 
 void Node::handleMessage(cMessage *msg)
 {
-	if (msg == &componentSizeCheckTimer)
+	if (msg == &clockManagment.componentSizeCheckTimer)
 		PeriodicComponentCheck();
 	else
 	{
@@ -74,81 +74,37 @@ void Node::handleMessage(cMessage *msg)
 	}
 }
 
-bool Node::expandDecision()
+AppMsg* Node::sendAppMsg()
 {
-	if ((simTime() - lastExpand < 0.5) || (simTime() - lastReduce) < 0.5 || ackData.inAckRound)
-		return false;
+	if (DeliveryControl == Delivery::DCS)
+		expandClockCheck();
+	control->sendMessage(id, seq);
+	control->recvMessage(id, seq, id, true);
 
-	if (nbReceivedLastSecond() > 10 && ut->clockLength * clock.activeComponents < 20)
-		return true;
-	if (nbReceivedLastSecond() > 25 && ut->clockLength * clock.activeComponents < 50)
-		return true;
-	if (nbReceivedLastSecond() > 33 && ut->clockLength * clock.activeComponents < 100)
-		return true;
-	if (nbReceivedLastSecond() > 45 && ut->clockLength * clock.activeComponents < 150)
-		return true;
-	if (nbReceivedLastSecond() > 53 && ut->clockLength * clock.activeComponents < 200)
-		return true;
-	if (nbReceivedLastSecond() > 65 && ut->clockLength * clock.activeComponents < 300)
-		return true;
-	if (nbReceivedLastSecond() > 75 && ut->clockLength * clock.activeComponents < 400)
-		return true;
-	if (nbReceivedLastSecond() > 80 && ut->clockLength * clock.activeComponents < 500)
-		return true;
-	return false;
+	stat.nbBroadcasts++;
+	stat.localActiveComponentsWhenBroadcast += clockManagment.nbLocalActiveComponents;
+	stat.controlDataSize += clockManagment.clock.activeComponents * sizeof(ut->clockLength) * sizeof(unsigned int);
+
+	seq++;
+	IncrementPC();
+	AppMsg* m = createAppMsg();
+
+	dep d(id, seq, simTime(), clockManagment.incrComponent, clockManagment.clock);
+	delivered.push_back(d);
+	send(m, outGate);
+	assert(clockManagment.clock.activeComponents < clockManagment.incrComponent); // Verifies that does not increment an inactive component
+	clearDelivered();
+	return m;
 }
 
-bool Node::reduceDecision()
+AppMsg* Node::createAppMsg()
 {
-	if ((simTime() - lastExpand < 0.5) || (simTime() - lastReduce) < 0.5 || ackData.inAckRound
-			|| clock.activeComponents == 1)
-		return false;
-	if (simTime() > 49 && simTime() < 100)
-		return false; // POUR DES EXPÉRIENCES !!
-
-	if (nbReceivedLastSecond() < 10 && ut->clockLength * clock.activeComponents > 20)
-		return true;
-	if (nbReceivedLastSecond() < 22 && ut->clockLength * clock.activeComponents > 50)
-		return true;
-	if (nbReceivedLastSecond() < 33 && ut->clockLength * clock.activeComponents > 100)
-		return true;
-	if (nbReceivedLastSecond() < 40 && ut->clockLength * clock.activeComponents > 150)
-		return true;
-	if (nbReceivedLastSecond() < 45 && ut->clockLength * clock.activeComponents > 200)
-		return true;
-	if (nbReceivedLastSecond() < 65 && ut->clockLength * clock.activeComponents > 300)
-		return true;
-	if (nbReceivedLastSecond() < 75 && ut->clockLength * clock.activeComponents > 400)
-		return true;
-	if (nbReceivedLastSecond() < 80 && ut->clockLength * clock.activeComponents > 500)
-		return true;
-	return false;
-}
-
-void Node::PeriodicComponentCheck()
-{
-	if (reduceDecision())
-//    if( nbReceivedLastSecond() / LIMIT_LOAD_DOWN < clock.activeComponents -1 && ( simTime() - lastExpand > 0.5) && (simTime() - lastReduce) > 0.5  )
-//    if( nbReceivedLastSecond() / LIMIT_LOAD_DOWN < clock.activeComponents -1 && ( simTime() - lastExpand > 1) && (simTime() - lastReduce) > 2  )
-//    if(nbHashsTestsPerSecond() / nbReceivedLastSecond() < DOWNLIMIT_NB_HASHTESTS_SECOND && clock.activeComponents > 1 && ( simTime() - lastExpand > 1) )
-	{
-		if (id == 0) // only node 0 launches ack rounds to avoid implementing concurrent acks
-		{
-			AckComponent * m = new AckComponent();
-			m->setSourceId(id);
-			m->setComponent(clock[clock.activeComponents - 1].clock);
-			m->setAckComponent(clock.activeComponents);
-			send(m, outGate);
-			cerr << "Node " << id << " AckComponent message, active componens : " << clock.activeComponents << endl;
-			cerr << "Observed load : " << nbReceivedLastSecond() << endl;
-			ackData.beginAckRound();
-		}
-		nbLocalActiveComponents = clock.activeComponents - 1;
-		incrComponent = rand() % nbLocalActiveComponents;
-		cerr << "Node " << id << " reaffects itself to component " << incrComponent << endl;
-		lastReduce = simTime();
-	}
-	scheduleAt(simTime() + SimTime(1001, SIMTIME_MS), &componentSizeCheckTimer);
+	AppMsg* m = new AppMsg("broadcast");
+	m->setSeq(seq);
+	m->setSourceId(id);
+	m->setIncrComponent(clockManagment.incrComponent);
+	m->setPC(clockManagment.clock);
+	return m;
 }
 
 void Node::RecvAppMsg(AppMsg*m)
@@ -176,93 +132,31 @@ void Node::RecvAppMsg(AppMsg*m)
 	}
 }
 
-void Node::RecvAckComponent(AckComponent* m)
+bool Node::PC_test(unsigned int idMsg, const DCS &PCMsg, unsigned int PCMsgIncrComponent)
 {
-	assert(m->getAckComponent() > clock.size() && "Requests to delete component not in local DCS!");
-	bool reply = true;
-
-	if (incrComponent == m->getAckComponent() - 1)
-	{
-		reply = false;
-		cerr << "Replies no because increments this component" << endl;
+	if (PCMsg.size() > clockManagment.clock.size())
+	{ // adds a component to the clock
+		if (clockManagment.ackData.inAckRound)
+			return false; // does not expand clock during ackRound
+		clockManagment.expandClock();
 	}
-	if (timeIncrLastComponent > simTime() - SimTime(300, SIMTIME_MS))
-	{
-		reply = false;
-		cerr << "Replies no because incremented the component less than 0.3s ago" << endl;
-	}
-
-	if (!(m->getComponent() == clock[m->getAckComponent() - 1].clock))
-	{
-		reply = false;
-		cerr << "Replies no because components are not equal" << endl;
-	}
-
-	for (const dep& pendm : pendingMsg)
-	{
-		if (pendm.PC.size() >= m->getAckComponent())
-		{
-			if (!(m->getComponent() == pendm.PC[m->getAckComponent() - 1].clock))
-				reply = false;
+	else if (clockManagment.clock.activeComponents < PCMsg.size())
+	{ // checks whether needs to activate a component
+		if (!(PCMsg[clockManagment.clock.activeComponents].clock
+				<= clockManagment.clock[clockManagment.clock.activeComponents].clock))
+		{ // The message's component has an entry higher than the local one
+			cerr << "message component clock value is higher" << endl;
+			clockManagment.expandClock();
 		}
 	}
-	cerr << "Node " << id << " replies to ackComponent: " << reply << " activeComp " << clock.activeComponents
-			<< " localActiveComp " << nbLocalActiveComponents << endl;
-
-	ackData.beginAckRound();
-	send(createAckRep(reply, m->getSourceId(), m->getAckComponent()), outGate);
+	return clockManagment.clock.satisfiesDeliveryConditions(PCMsg, { PCMsgIncrComponent }, ut->clockEntries[idMsg]);
 }
 
-AckRep* Node::createAckRep(bool reply, unsigned int destination, unsigned int component)
+void Node::IncrementPC()
 {
-	AckRep* mrep = new AckRep();
-	mrep->setAck(reply);
-	mrep->setIdDest(destination);
-	mrep->setSourceId(id);
-	mrep->setAckComponent(component);
-	return mrep;
-}
-
-void Node::RecvAckRep(AckRep* m)
-{
-	DeleteComponent* msg = new DeleteComponent();
-	msg->setAckComponent(m->getAckComponent());
-	msg->setSourceId(id);
-	ackData.getReply(m->getAck());
-
-	if (ackData.gotReplies() == ut->nbNodes)
-	{ // got reply from all nodes
-		if (ackData.positiveAck == ut->nbNodes)
-		{
-			msg->setAck(true);
-			clock.activeComponents--;
-		}
-		else
-			msg->setAck(false);
-		cerr << "NODE " << id << " Send deleteCompoenent " << msg->getAck() << endl;
-		send(msg, outGate);
-	}
-	else
-		cerr << "NODE " << id << " recv ackPositifs: " << ackData.positiveAck << ", ackNegatifs: "
-				<< ackData.negativeAck << endl;
-}
-
-void Node::RecvDeleteComponent(DeleteComponent* m)
-{
-	ackData.reset();
-	if (m->getAck())
-	{
-		cerr << "NODE " << id << " RecvDeleteComponent reply " << m->getAckComponent() << endl;
-		if (clock.activeComponents == m->getAckComponent())
-		{
-			if (nbLocalActiveComponents == clock.activeComponents)
-				nbLocalActiveComponents--;
-			clock.activeComponents--;
-		}
-	}
-	else
-		incrComponent = rand() % clock.size();
-	iterativeDelivery();
+	clockManagment.clock.incrementEntries( { clockManagment.incrComponent }, ut->clockEntries[id]);
+	if (clockManagment.incrComponent == clockManagment.clock.activeComponents - 1) // keep track when incremented the last component
+		clockManagment.timeIncrLastComponent = simTime();
 }
 
 bool Node::deliverMsg(unsigned int idMsg, unsigned int seqMsg, DCS v, simtime_t rcvTime, unsigned int MsgIncrComponent)
@@ -273,17 +167,8 @@ bool Node::deliverMsg(unsigned int idMsg, unsigned int seqMsg, DCS v, simtime_t 
 
 	dep d(idMsg, seqMsg, rcvTime, MsgIncrComponent, v);
 	delivered.push_back(d);
-	clock.incrementEntries( { MsgIncrComponent }, ut->clockEntries[idMsg]);
+	clockManagment.clock.incrementEntries( { MsgIncrComponent }, ut->clockEntries[idMsg]);
 	return control->recvMessage(idMsg, seqMsg, id, true);
-}
-
-int Node::nbReceivedLastSecond()
-{
-	vector<simtime_t>::iterator it = receivedTime.begin();
-	while (it != receivedTime.end() && *it < (simTime() - measureTime))
-		it++;
-	receivedTime.erase(receivedTime.begin(), it);
-	return receivedTime.size();
 }
 
 void Node::iterativeDelivery()
@@ -307,104 +192,135 @@ void Node::iterativeDelivery()
 	}
 }
 
-AppMsg* Node::sendAppMsg()
+void Node::PeriodicComponentCheck()
 {
-	if (DeliveryControl == Delivery::DCS)
-		expandClockCheck();
-	control->sendMessage(id, seq);
-	control->recvMessage(id, seq, id, true);
-
-	stat.nbBroadcasts++;
-	stat.localActiveComponentsWhenBroadcast += nbLocalActiveComponents;
-	stat.controlDataSize += clock.activeComponents * sizeof(ut->clockLength) * sizeof(unsigned int);
-
-	seq++;
-	IncrementPC();
-	AppMsg* m = createAppMsg();
-
-	dep d(id, seq, simTime(), incrComponent, clock);
-	delivered.push_back(d);
-	send(m, outGate);
-	assert(clock.activeComponents < incrComponent); // Verifies that does not increment an inactive component
-	clearDelivered();
-	return m;
+	if (clockManagment.reduceDecision(nbReceivedLastSecond()))
+	{
+		if (id == 0) // only node 0 launches ack rounds to avoid implementing concurrent acks
+		{
+			send(createAckComponent(), outGate);
+			cerr << "Node " << id << " AckComponent message, active components : "
+					<< clockManagment.clock.activeComponents << endl;
+			cerr << "Observed load : " << nbReceivedLastSecond() << endl;
+			clockManagment.ackData.beginAckRound();
+		}
+		clockManagment.reduceLocalActiveComponents();
+	}
+	scheduleAt(simTime() + SimTime(1, SIMTIME_S), &clockManagment.componentSizeCheckTimer);
 }
 
-AppMsg* Node::createAppMsg()
+AckComponent* Node::createAckComponent()
 {
-	AppMsg* m = new AppMsg("broadcast");
-	m->setSeq(seq);
+	AckComponent * m = new AckComponent();
 	m->setSourceId(id);
-	m->setIncrComponent(incrComponent);
-	m->setPC(clock);
+	m->setComponent(clockManagment.clock[clockManagment.clock.activeComponents - 1].clock);
+	m->setAckComponent(clockManagment.clock.activeComponents);
 	return m;
 }
 
-void Node::IncrementPC()
+unsigned int Node::nbReceivedLastSecond()
 {
-	clock.incrementEntries( { incrComponent }, ut->clockEntries[id]);
-	if (incrComponent == clock.activeComponents - 1) // keep track when incremented the last component
-		timeIncrLastComponent = simTime();
+	vector<simtime_t>::iterator it = receivedTime.begin();
+	while (it != receivedTime.end() && *it < (simTime() - clockManagment.measureTime))
+		it++;
+	receivedTime.erase(receivedTime.begin(), it);
+	return receivedTime.size();
 }
 
 void Node::expandClockCheck()
 {
-	if (nbReceivedLastSecond() == 0)
+	if (!clockManagment.expandDecision(nbReceivedLastSecond()))
 		return;
 
-	if (!expandDecision())
-//    if(nbReceivedLastSecond() / LIMIT_LOAD_UP < clock.activeComponents)
-		return;
-
-	if (nbLocalActiveComponents < clock.activeComponents) // a diminué le nombre de composants incr et l'ack n'a pas encore eu lieu
+	if (clockManagment.nbLocalActiveComponents < clockManagment.clock.activeComponents) // a diminué le nombre de composants incr et l'ack n'a pas encore eu lieu
+		clockManagment.increaseLocalActiveComponents();
+	else
 	{
-		nbLocalActiveComponents++;
-		incrComponent = rand() % nbLocalActiveComponents;
-		cerr << "NODE " << id << " AFFECTS ITSELF TO COMPONENT " << incrComponent << " without incr clock " << endl;
-		lastExpand = simTime();
-		return;
+		clockManagment.expandClock();
+		// To ensure that this node increments the newly added component such that other processes increment the number of active components
+		clockManagment.incrComponent = clockManagment.clock.activeComponents - 1;
 	}
-	expandClockForce();
-	incrComponent = clock.activeComponents - 1; // fait cette optimisation pour être sûr que le noeud qui augmente son nombre de composants envoyés incr bien le composant, sinon les autres noeuds ne vont peut-être pas prendre en compte cette augmentation
 }
 
-void Node::expandClockForce()
+void Node::RecvAckComponent(AckComponent* m)
 {
-	if (ackData.inAckRound)
-	{
-		cerr << "CURRENT ACKROUND" << endl;
-	}
-	lastExpand = simTime();
-	clock.activeComponents++;
-	nbLocalActiveComponents++;
-	incrComponent = rand() % nbLocalActiveComponents;
-	if (clock.activeComponents - 1 < clock.size()) // dans ce cas a déjà un composant local non utilisé
-		return;
-	clock.Add();
-	cerr << "EXPAND THE CLOCK ! Node " << id << " NOW INCREMENTS COMPONENT " << incrComponent
-			<< " number of components " << clock.size() << endl;
+	bool reply = clockManagment.acknowledgesComponentDeactivation(m->getAckComponent(), m->getComponent());
+	reply |= !componentUsefulToPendingMessage(m->getAckComponent(), m->getComponent());
+	cerr << "Node " << id << " replies to ackComponent: " << reply << " activeComp "
+			<< clockManagment.clock.activeComponents << " localActiveComp " << clockManagment.nbLocalActiveComponents
+			<< endl;
+
+	clockManagment.ackData.beginAckRound();
+	send(createAckRep(reply, m->getSourceId(), m->getAckComponent()), outGate);
 }
 
-bool Node::PC_test(unsigned int idMsg, const DCS &PCMsg, unsigned int PCMsgIncrComponent)
+bool Node::componentUsefulToPendingMessage(unsigned int componentIndex, ProbabilisticClock component)
 {
-	if (PCMsg.size() > clock.size())
-	{ // adds a component to the clock
-		if (ackData.inAckRound)
-			return false; // does not expand clock during ackRound
-		expandClockForce();
-	}
-	else if (clock.activeComponents < PCMsg.size())
-	{ // checks whether needs to activate a component
-		if (!(PCMsg[clock.activeComponents].clock <= clock[clock.activeComponents].clock))
-		{ // The message's component has an entry higher than the local one
-			cerr << "message component clock value is higher" << endl;
-			expandClockForce();
+	for (const dep& pendm : pendingMsg)
+	{
+		if (pendm.PC.size() >= componentIndex)
+		{
+			if (!(component == pendm.PC[componentIndex - 1].clock))
+				return true;
 		}
 	}
-	return clock.satisfiesDeliveryConditions(PCMsg, { PCMsgIncrComponent }, ut->clockEntries[idMsg]);
+	return false;
 }
 
-// Removes old messages from delivered
+AckRep* Node::createAckRep(bool reply, unsigned int destination, unsigned int component)
+{
+	AckRep* mrep = new AckRep();
+	mrep->setAck(reply);
+	mrep->setIdDest(destination);
+	mrep->setSourceId(id);
+	mrep->setAckComponent(component);
+	return mrep;
+}
+
+void Node::RecvAckRep(AckRep* m)
+{
+	clockManagment.ackData.getReply(m->getAck());
+	if (clockManagment.ackData.gotReplies() == ut->nbNodes)
+	{
+		if (clockManagment.ackData.positiveAck == ut->nbNodes)
+			clockManagment.reduceClock();
+		cerr << "NODE " << id << " Send deleteCompoenent " << clockManagment.acknowledgementDecision(ut->nbNodes)
+				<< endl;
+		send(createDeleteComponent(clockManagment.acknowledgementDecision(ut->nbNodes), id, m->getAckComponent()),
+				outGate);
+	}
+	else
+		cerr << "NODE " << id << " recv ackPositifs: " << clockManagment.ackData.positiveAck << ", ackNegatifs: "
+				<< clockManagment.ackData.negativeAck << endl;
+}
+
+DeleteComponent* Node::createDeleteComponent(bool decision, unsigned int sourceId, unsigned int componentIndex)
+{
+	DeleteComponent* msg = new DeleteComponent();
+	msg->setAckComponent(componentIndex);
+	msg->setSourceId(id);
+	msg->setAck(decision);
+	return msg;
+}
+
+void Node::RecvDeleteComponent(DeleteComponent* m)
+{
+	clockManagment.ackData.reset();
+	if (m->getAck())
+	{
+		cerr << "NODE " << id << " RecvDeleteComponent reply " << m->getAckComponent() << endl;
+		if (clockManagment.clock.activeComponents == m->getAckComponent())
+		{
+			if (clockManagment.nbLocalActiveComponents == clockManagment.clock.activeComponents)
+				clockManagment.nbLocalActiveComponents--;
+			clockManagment.clock.activeComponents--;
+		}
+	}
+	else
+		clockManagment.incrComponent = rand() % clockManagment.clock.size();
+	iterativeDelivery();
+}
+
 void Node::clearDelivered()
 {
 	vector<dep>::iterator it = delivered.begin();

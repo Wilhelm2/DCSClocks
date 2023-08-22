@@ -34,6 +34,8 @@
 #include "structures.h"
 #include "Clock/ProbabilisticClock.h"
 #include "Clock/DCS.h"
+#include "DCSManagement.h"
+
 using namespace omnetpp;
 using namespace std;
 
@@ -55,38 +57,6 @@ typedef struct s_stats_Node
 	int localActiveComponentsWhenBroadcast = 0;
 } stats_Node;
 
-struct ackRoundData
-{
-	unsigned int positiveAck = 0;
-	unsigned int negativeAck = 0;
-	bool inAckRound = false;
-
-	void beginAckRound()
-	{
-		positiveAck = 1; // for the node which launched the round
-		negativeAck = 0;
-		inAckRound = true;
-	}
-
-	void reset()
-	{
-		positiveAck = negativeAck = 0;
-		inAckRound = false;
-	}
-
-	void getReply(bool reply)
-	{
-		if (reply)
-			positiveAck++;
-		else
-			negativeAck++;
-	}
-	unsigned int gotReplies()
-	{
-		return positiveAck + negativeAck;
-	}
-};
-
 class Node: public cSimpleModule
 {
 public:
@@ -104,33 +74,30 @@ public:
 	void iterativeDelivery();
 
 	void PeriodicComponentCheck();
-	bool expandDecision();
-	bool reduceDecision();
-	int nbReceivedLastSecond();
+	AckComponent* createAckComponent();
+	unsigned int nbReceivedLastSecond();
 	void expandClockCheck();
-	void expandClockForce();
 
 	void RecvAckComponent(AckComponent*m);
+	bool componentUsefulToPendingMessage(unsigned int componentIndex, ProbabilisticClock component);
 	AckRep* createAckRep(bool reply, unsigned int destination, unsigned int component);
 	void RecvAckRep(AckRep* m);
+	DeleteComponent* createDeleteComponent(bool decision, unsigned int sourceId, unsigned int componentIndex);
 	void RecvDeleteComponent(DeleteComponent* m);
 
 	void clearDelivered();
 
-	cMessage componentSizeCheckTimer;
 	DeliveryController* control;
 	Utilitaries* ut;
 	unsigned int seq = 0;
 	unsigned int id = idCounter++;
-
-	DCS clock;
-	unsigned int incrComponent = 0; // Incremented component when broadcasting a message
+	vector<dep> pendingMsg;
+	vector<dep> delivered;
+	vector<simtime_t> receivedTime;
 
 	cGate* outGate;
 
-	vector<dep> pendingMsg; // msg qui ont pas passé le test PCtest
-
-	vector<dep> delivered;
+	DCSManagement clockManagment;
 
 	enum class Delivery
 	{
@@ -138,20 +105,7 @@ public:
 	};
 	Delivery DeliveryControl = Delivery::PCcomparision;
 
-	simtime_t lastExpand = *(new SimTime(-1, SIMTIME_S));
-	simtime_t lastReduce = *(new SimTime(0, SIMTIME_S));
-#define LIMIT_LOAD_UP 20 // Toutes les tranches de charge de x msg ajoute un composant
-#define LIMIT_LOAD_DOWN 10 // Toutes les tranches de charge de x msg retire un composant
-	simtime_t measureTime = *(new SimTime(500, SIMTIME_MS)); //*(new SimTime(500, SIMTIME_MS)) ; // temps de mesure (moyenne de hashs ces combien measureTime dernieres secondes)
-
-	struct ackRoundData ackData;
-	simtime_t timeIncrLastComponent = 0;
-
-	unsigned int nbLocalActiveComponents = 1;
-
 	stats_Node stat;
-
-	vector<simtime_t> receivedTime;
 
 	static unsigned int idCounter;
 
