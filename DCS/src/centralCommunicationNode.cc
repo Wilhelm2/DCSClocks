@@ -19,7 +19,7 @@ Define_Module(CentralCommunicationNode);
 
 void CentralCommunicationNode::initialize()
 {
-	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DynamicClockSet.ut"));
+	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DCS.ut"));
 	memset(delayIntervals, 0, sizeof(delayIntervals));
 	gateToTarget.resize(ut->nbNodes);
 
@@ -50,7 +50,7 @@ unsigned int CentralCommunicationNode::getSourceId(cMessage* msg)
 		sourceId = m->getSourceId();
 	else if (AckComponent* m = dynamic_cast<AckComponent*>(msg))
 		sourceId = m->getSourceId();
-	else if (DeleteComponent* m = dynamic_cast<DeleteComponent*>(msg))
+	else if (AckRoundDecision* m = dynamic_cast<AckRoundDecision*>(msg))
 		sourceId = m->getSourceId();
 	else if (AckRep* m = dynamic_cast<AckRep*>(msg))
 		sourceId = m->getSourceId();
@@ -71,7 +71,7 @@ unsigned int CentralCommunicationNode::getTargetId(cMessage* msg)
 		targetId = m->getTargetId();
 	else if (AckComponent* m = dynamic_cast<AckComponent*>(msg))
 		targetId = m->getTargetId();
-	else if (DeleteComponent* m = dynamic_cast<DeleteComponent*>(msg))
+	else if (AckRoundDecision * m = dynamic_cast<AckRoundDecision*>(msg))
 		targetId = m->getTargetId();
 	else if (AckRep* m = dynamic_cast<AckRep*>(msg))
 		targetId = m->getTargetId();
@@ -91,7 +91,7 @@ void CentralCommunicationNode::setTargetId(cMessage* msg, unsigned int targetId)
 		m->setTargetId(targetId);
 	else if (AckComponent* m = dynamic_cast<AckComponent*>(msg))
 		m->setTargetId(targetId);
-	else if (DeleteComponent* m = dynamic_cast<DeleteComponent*>(msg))
+	else if (AckRoundDecision * m = dynamic_cast<AckRoundDecision*>(msg))
 		m->setTargetId(targetId);
 	else if (AckRep* m = dynamic_cast<AckRep*>(msg))
 		m->setTargetId(targetId);

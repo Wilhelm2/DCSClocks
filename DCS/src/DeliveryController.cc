@@ -26,7 +26,7 @@ DeliveryController::~DeliveryController()
 void DeliveryController::initialize(int stage)
 {
 	cSimpleModule::initialize(stage);
-	params = dynamic_cast<Utilitaries*>(getModuleByPath("DynamicClockSet.ut"));
+	params = dynamic_cast<Utilitaries*>(getModuleByPath("DCS.ut"));
 	processDependencies.resize(params->nbNodes);
 	for (vector<TotalDependencies>::iterator it = processDependencies.begin(); it != processDependencies.end(); it++)
 		*it = TotalDependencies(params->nbNodes);

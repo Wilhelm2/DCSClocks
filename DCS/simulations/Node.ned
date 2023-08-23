@@ -11,11 +11,14 @@
 // 
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see http://www.gnu.org/licenses/.
-//
+// 
 
-packet DeleteComponent{
-    bool ack;
-    unsigned int ackComponent;
-    unsigned int sourceId;
-    unsigned int targetId;
+package dcs;
+
+simple Node
+{
+    parameters:
+
+    gates:
+        inout neighbour[]; //[numNodes];
 }

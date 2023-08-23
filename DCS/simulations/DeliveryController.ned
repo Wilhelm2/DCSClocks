@@ -15,14 +15,6 @@
 
 package dcs;
 
-//
-// TODO auto-generated module
-//
-simple Utilitaries
+simple DeliveryController
 {
-	int nbNodes ;
-	double PEAKSPERDELAY;
-    int clockLength;
-	double delaySend;
-    
 }

@@ -1,5 +1,5 @@
 //
-// Generated file, do not edit! Created by nedtool 5.5 from Messages/DeleteComponent.msg.
+// Generated file, do not edit! Created by nedtool 5.5 from Messages/AckRoundDecision.msg.
 //
 
 // Disable warnings about unused variables, empty switch stmts, etc:
@@ -26,7 +26,7 @@
 
 #include <iostream>
 #include <sstream>
-#include "DeleteComponent_m.h"
+#include "AckRoundDecision_m.h"
 
 namespace omnetpp {
 
@@ -177,26 +177,26 @@ inline std::ostream& operator<<(std::ostream& out, const std::vector<T,A>& vec)
     return out;
 }
 
-Register_Class(DeleteComponent)
+Register_Class(AckRoundDecision)
 
-DeleteComponent::DeleteComponent(const char *name, short kind) : ::omnetpp::cPacket(name,kind)
+AckRoundDecision::AckRoundDecision(const char *name, short kind) : ::omnetpp::cPacket(name,kind)
 {
-    this->ack = false;
-    this->ackComponent = 0;
+    this->decision = false;
+    this->componentIndex = 0;
     this->sourceId = 0;
     this->targetId = 0;
 }
 
-DeleteComponent::DeleteComponent(const DeleteComponent& other) : ::omnetpp::cPacket(other)
+AckRoundDecision::AckRoundDecision(const AckRoundDecision& other) : ::omnetpp::cPacket(other)
 {
     copy(other);
 }
 
-DeleteComponent::~DeleteComponent()
+AckRoundDecision::~AckRoundDecision()
 {
 }
 
-DeleteComponent& DeleteComponent::operator=(const DeleteComponent& other)
+AckRoundDecision& AckRoundDecision::operator=(const AckRoundDecision& other)
 {
     if (this==&other) return *this;
     ::omnetpp::cPacket::operator=(other);
@@ -204,79 +204,79 @@ DeleteComponent& DeleteComponent::operator=(const DeleteComponent& other)
     return *this;
 }
 
-void DeleteComponent::copy(const DeleteComponent& other)
+void AckRoundDecision::copy(const AckRoundDecision& other)
 {
-    this->ack = other.ack;
-    this->ackComponent = other.ackComponent;
+    this->decision = other.decision;
+    this->componentIndex = other.componentIndex;
     this->sourceId = other.sourceId;
     this->targetId = other.targetId;
 }
 
-void DeleteComponent::parsimPack(omnetpp::cCommBuffer *b) const
+void AckRoundDecision::parsimPack(omnetpp::cCommBuffer *b) const
 {
     ::omnetpp::cPacket::parsimPack(b);
-    doParsimPacking(b,this->ack);
-    doParsimPacking(b,this->ackComponent);
+    doParsimPacking(b,this->decision);
+    doParsimPacking(b,this->componentIndex);
     doParsimPacking(b,this->sourceId);
     doParsimPacking(b,this->targetId);
 }
 
-void DeleteComponent::parsimUnpack(omnetpp::cCommBuffer *b)
+void AckRoundDecision::parsimUnpack(omnetpp::cCommBuffer *b)
 {
     ::omnetpp::cPacket::parsimUnpack(b);
-    doParsimUnpacking(b,this->ack);
-    doParsimUnpacking(b,this->ackComponent);
+    doParsimUnpacking(b,this->decision);
+    doParsimUnpacking(b,this->componentIndex);
     doParsimUnpacking(b,this->sourceId);
     doParsimUnpacking(b,this->targetId);
 }
 
-bool DeleteComponent::getAck() const
+bool AckRoundDecision::getDecision() const
 {
-    return this->ack;
+    return this->decision;
 }
 
-void DeleteComponent::setAck(bool ack)
+void AckRoundDecision::setDecision(bool decision)
 {
-    this->ack = ack;
+    this->decision = decision;
 }
 
-unsigned int DeleteComponent::getAckComponent() const
+unsigned int AckRoundDecision::getComponentIndex() const
 {
-    return this->ackComponent;
+    return this->componentIndex;
 }
 
-void DeleteComponent::setAckComponent(unsigned int ackComponent)
+void AckRoundDecision::setComponentIndex(unsigned int componentIndex)
 {
-    this->ackComponent = ackComponent;
+    this->componentIndex = componentIndex;
 }
 
-unsigned int DeleteComponent::getSourceId() const
+unsigned int AckRoundDecision::getSourceId() const
 {
     return this->sourceId;
 }
 
-void DeleteComponent::setSourceId(unsigned int sourceId)
+void AckRoundDecision::setSourceId(unsigned int sourceId)
 {
     this->sourceId = sourceId;
 }
 
-unsigned int DeleteComponent::getTargetId() const
+unsigned int AckRoundDecision::getTargetId() const
 {
     return this->targetId;
 }
 
-void DeleteComponent::setTargetId(unsigned int targetId)
+void AckRoundDecision::setTargetId(unsigned int targetId)
 {
     this->targetId = targetId;
 }
 
-class DeleteComponentDescriptor : public omnetpp::cClassDescriptor
+class AckRoundDecisionDescriptor : public omnetpp::cClassDescriptor
 {
   private:
     mutable const char **propertynames;
   public:
-    DeleteComponentDescriptor();
-    virtual ~DeleteComponentDescriptor();
+    AckRoundDecisionDescriptor();
+    virtual ~AckRoundDecisionDescriptor();
 
     virtual bool doesSupport(omnetpp::cObject *obj) const override;
     virtual const char **getPropertyNames() const override;
@@ -298,24 +298,24 @@ class DeleteComponentDescriptor : public omnetpp::cClassDescriptor
     virtual void *getFieldStructValuePointer(void *object, int field, int i) const override;
 };
 
-Register_ClassDescriptor(DeleteComponentDescriptor)
+Register_ClassDescriptor(AckRoundDecisionDescriptor)
 
-DeleteComponentDescriptor::DeleteComponentDescriptor() : omnetpp::cClassDescriptor("DeleteComponent", "omnetpp::cPacket")
+AckRoundDecisionDescriptor::AckRoundDecisionDescriptor() : omnetpp::cClassDescriptor("AckRoundDecision", "omnetpp::cPacket")
 {
     propertynames = nullptr;
 }
 
-DeleteComponentDescriptor::~DeleteComponentDescriptor()
+AckRoundDecisionDescriptor::~AckRoundDecisionDescriptor()
 {
     delete[] propertynames;
 }
 
-bool DeleteComponentDescriptor::doesSupport(omnetpp::cObject *obj) const
+bool AckRoundDecisionDescriptor::doesSupport(omnetpp::cObject *obj) const
 {
-    return dynamic_cast<DeleteComponent *>(obj)!=nullptr;
+    return dynamic_cast<AckRoundDecision *>(obj)!=nullptr;
 }
 
-const char **DeleteComponentDescriptor::getPropertyNames() const
+const char **AckRoundDecisionDescriptor::getPropertyNames() const
 {
     if (!propertynames) {
         static const char *names[] = {  nullptr };
@@ -326,19 +326,19 @@ const char **DeleteComponentDescriptor::getPropertyNames() const
     return propertynames;
 }
 
-const char *DeleteComponentDescriptor::getProperty(const char *propertyname) const
+const char *AckRoundDecisionDescriptor::getProperty(const char *propertyname) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     return basedesc ? basedesc->getProperty(propertyname) : nullptr;
 }
 
-int DeleteComponentDescriptor::getFieldCount() const
+int AckRoundDecisionDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     return basedesc ? 4+basedesc->getFieldCount() : 4;
 }
 
-unsigned int DeleteComponentDescriptor::getFieldTypeFlags(int field) const
+unsigned int AckRoundDecisionDescriptor::getFieldTypeFlags(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -355,7 +355,7 @@ unsigned int DeleteComponentDescriptor::getFieldTypeFlags(int field) const
     return (field>=0 && field<4) ? fieldTypeFlags[field] : 0;
 }
 
-const char *DeleteComponentDescriptor::getFieldName(int field) const
+const char *AckRoundDecisionDescriptor::getFieldName(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -364,26 +364,26 @@ const char *DeleteComponentDescriptor::getFieldName(int field) const
         field -= basedesc->getFieldCount();
     }
     static const char *fieldNames[] = {
-        "ack",
-        "ackComponent",
+        "decision",
+        "componentIndex",
         "sourceId",
         "targetId",
     };
     return (field>=0 && field<4) ? fieldNames[field] : nullptr;
 }
 
-int DeleteComponentDescriptor::findField(const char *fieldName) const
+int AckRoundDecisionDescriptor::findField(const char *fieldName) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     int base = basedesc ? basedesc->getFieldCount() : 0;
-    if (fieldName[0]=='a' && strcmp(fieldName, "ack")==0) return base+0;
-    if (fieldName[0]=='a' && strcmp(fieldName, "ackComponent")==0) return base+1;
+    if (fieldName[0]=='d' && strcmp(fieldName, "decision")==0) return base+0;
+    if (fieldName[0]=='c' && strcmp(fieldName, "componentIndex")==0) return base+1;
     if (fieldName[0]=='s' && strcmp(fieldName, "sourceId")==0) return base+2;
     if (fieldName[0]=='t' && strcmp(fieldName, "targetId")==0) return base+3;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
-const char *DeleteComponentDescriptor::getFieldTypeString(int field) const
+const char *AckRoundDecisionDescriptor::getFieldTypeString(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -400,7 +400,7 @@ const char *DeleteComponentDescriptor::getFieldTypeString(int field) const
     return (field>=0 && field<4) ? fieldTypeStrings[field] : nullptr;
 }
 
-const char **DeleteComponentDescriptor::getFieldPropertyNames(int field) const
+const char **AckRoundDecisionDescriptor::getFieldPropertyNames(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -413,7 +413,7 @@ const char **DeleteComponentDescriptor::getFieldPropertyNames(int field) const
     }
 }
 
-const char *DeleteComponentDescriptor::getFieldProperty(int field, const char *propertyname) const
+const char *AckRoundDecisionDescriptor::getFieldProperty(int field, const char *propertyname) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -426,7 +426,7 @@ const char *DeleteComponentDescriptor::getFieldProperty(int field, const char *p
     }
 }
 
-int DeleteComponentDescriptor::getFieldArraySize(void *object, int field) const
+int AckRoundDecisionDescriptor::getFieldArraySize(void *object, int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -434,13 +434,13 @@ int DeleteComponentDescriptor::getFieldArraySize(void *object, int field) const
             return basedesc->getFieldArraySize(object, field);
         field -= basedesc->getFieldCount();
     }
-    DeleteComponent *pp = (DeleteComponent *)object; (void)pp;
+    AckRoundDecision *pp = (AckRoundDecision *)object; (void)pp;
     switch (field) {
         default: return 0;
     }
 }
 
-const char *DeleteComponentDescriptor::getFieldDynamicTypeString(void *object, int field, int i) const
+const char *AckRoundDecisionDescriptor::getFieldDynamicTypeString(void *object, int field, int i) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -448,13 +448,13 @@ const char *DeleteComponentDescriptor::getFieldDynamicTypeString(void *object, i
             return basedesc->getFieldDynamicTypeString(object,field,i);
         field -= basedesc->getFieldCount();
     }
-    DeleteComponent *pp = (DeleteComponent *)object; (void)pp;
+    AckRoundDecision *pp = (AckRoundDecision *)object; (void)pp;
     switch (field) {
         default: return nullptr;
     }
 }
 
-std::string DeleteComponentDescriptor::getFieldValueAsString(void *object, int field, int i) const
+std::string AckRoundDecisionDescriptor::getFieldValueAsString(void *object, int field, int i) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -462,17 +462,17 @@ std::string DeleteComponentDescriptor::getFieldValueAsString(void *object, int f
             return basedesc->getFieldValueAsString(object,field,i);
         field -= basedesc->getFieldCount();
     }
-    DeleteComponent *pp = (DeleteComponent *)object; (void)pp;
+    AckRoundDecision *pp = (AckRoundDecision *)object; (void)pp;
     switch (field) {
-        case 0: return bool2string(pp->getAck());
-        case 1: return ulong2string(pp->getAckComponent());
+        case 0: return bool2string(pp->getDecision());
+        case 1: return ulong2string(pp->getComponentIndex());
         case 2: return ulong2string(pp->getSourceId());
         case 3: return ulong2string(pp->getTargetId());
         default: return "";
     }
 }
 
-bool DeleteComponentDescriptor::setFieldValueAsString(void *object, int field, int i, const char *value) const
+bool AckRoundDecisionDescriptor::setFieldValueAsString(void *object, int field, int i, const char *value) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -480,17 +480,17 @@ bool DeleteComponentDescriptor::setFieldValueAsString(void *object, int field, i
             return basedesc->setFieldValueAsString(object,field,i,value);
         field -= basedesc->getFieldCount();
     }
-    DeleteComponent *pp = (DeleteComponent *)object; (void)pp;
+    AckRoundDecision *pp = (AckRoundDecision *)object; (void)pp;
     switch (field) {
-        case 0: pp->setAck(string2bool(value)); return true;
-        case 1: pp->setAckComponent(string2ulong(value)); return true;
+        case 0: pp->setDecision(string2bool(value)); return true;
+        case 1: pp->setComponentIndex(string2ulong(value)); return true;
         case 2: pp->setSourceId(string2ulong(value)); return true;
         case 3: pp->setTargetId(string2ulong(value)); return true;
         default: return false;
     }
 }
 
-const char *DeleteComponentDescriptor::getFieldStructName(int field) const
+const char *AckRoundDecisionDescriptor::getFieldStructName(int field) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -503,7 +503,7 @@ const char *DeleteComponentDescriptor::getFieldStructName(int field) const
     };
 }
 
-void *DeleteComponentDescriptor::getFieldStructValuePointer(void *object, int field, int i) const
+void *AckRoundDecisionDescriptor::getFieldStructValuePointer(void *object, int field, int i) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
     if (basedesc) {
@@ -511,7 +511,7 @@ void *DeleteComponentDescriptor::getFieldStructValuePointer(void *object, int fi
             return basedesc->getFieldStructValuePointer(object, field, i);
         field -= basedesc->getFieldCount();
     }
-    DeleteComponent *pp = (DeleteComponent *)object; (void)pp;
+    AckRoundDecision *pp = (AckRoundDecision *)object; (void)pp;
     switch (field) {
         default: return nullptr;
     }

@@ -26,7 +26,7 @@
 #include "Messages/AckComponent_m.h"
 #include "Messages/AckRep_m.h"
 #include "Messages/Init_m.h"
-#include "Messages/DeleteComponent_m.h"
+#include "Messages/AckRoundDecision_m.h"
 #include "DeliveryController.h"
 #include "Messages/broadcastNotify_m.h"
 #include "Utilitaries.h"
@@ -73,8 +73,8 @@ public:
 	bool componentUsefulToPendingMessage(unsigned int componentIndex, ProbabilisticClock component);
 	AckRep* createAckRep(bool reply, unsigned int destination, unsigned int component);
 	void RecvAckRep(AckRep* m);
-	DeleteComponent* createDeleteComponent(bool decision, unsigned int sourceId, unsigned int componentIndex);
-	void RecvDeleteComponent(DeleteComponent* m);
+	AckRoundDecision* createDeleteComponent(bool decision, unsigned int sourceId, unsigned int componentIndex);
+	void RecvAckRoundDecision(AckRoundDecision* m);
 
 	void clearDelivered();
 

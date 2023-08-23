@@ -42,18 +42,18 @@ OBJS = \
     $O/Clock/ProbabilisticClock.o \
     $O/Messages/AckComponent_m.o \
     $O/Messages/AckRep_m.o \
+    $O/Messages/AckRoundDecision_m.o \
     $O/Messages/AppMsg_m.o \
     $O/Messages/broadcastNotify_m.o \
-    $O/Messages/DeleteComponent_m.o \
     $O/Messages/Init_m.o
 
 # Message files
 MSGFILES = \
     Messages/AckComponent.msg \
     Messages/AckRep.msg \
+    Messages/AckRoundDecision.msg \
     Messages/AppMsg.msg \
     Messages/broadcastNotify.msg \
-    Messages/DeleteComponent.msg \
     Messages/Init.msg
 
 # SM files

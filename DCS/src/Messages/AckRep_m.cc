@@ -184,7 +184,7 @@ AckRep::AckRep(const char *name, short kind) : ::omnetpp::cPacket(name,kind)
     this->idDest = 0;
     this->sourceId = 0;
     this->targetId = 0;
-    this->ackComponent = 0;
+    this->componentIndex = 0;
     this->ack = false;
 }
 
@@ -210,7 +210,7 @@ void AckRep::copy(const AckRep& other)
     this->idDest = other.idDest;
     this->sourceId = other.sourceId;
     this->targetId = other.targetId;
-    this->ackComponent = other.ackComponent;
+    this->componentIndex = other.componentIndex;
     this->ack = other.ack;
 }
 
@@ -220,7 +220,7 @@ void AckRep::parsimPack(omnetpp::cCommBuffer *b) const
     doParsimPacking(b,this->idDest);
     doParsimPacking(b,this->sourceId);
     doParsimPacking(b,this->targetId);
-    doParsimPacking(b,this->ackComponent);
+    doParsimPacking(b,this->componentIndex);
     doParsimPacking(b,this->ack);
 }
 
@@ -230,7 +230,7 @@ void AckRep::parsimUnpack(omnetpp::cCommBuffer *b)
     doParsimUnpacking(b,this->idDest);
     doParsimUnpacking(b,this->sourceId);
     doParsimUnpacking(b,this->targetId);
-    doParsimUnpacking(b,this->ackComponent);
+    doParsimUnpacking(b,this->componentIndex);
     doParsimUnpacking(b,this->ack);
 }
 
@@ -264,14 +264,14 @@ void AckRep::setTargetId(unsigned int targetId)
     this->targetId = targetId;
 }
 
-unsigned int AckRep::getAckComponent() const
+unsigned int AckRep::getComponentIndex() const
 {
-    return this->ackComponent;
+    return this->componentIndex;
 }
 
-void AckRep::setAckComponent(unsigned int ackComponent)
+void AckRep::setComponentIndex(unsigned int componentIndex)
 {
-    this->ackComponent = ackComponent;
+    this->componentIndex = componentIndex;
 }
 
 bool AckRep::getAck() const
@@ -382,7 +382,7 @@ const char *AckRepDescriptor::getFieldName(int field) const
         "idDest",
         "sourceId",
         "targetId",
-        "ackComponent",
+        "componentIndex",
         "ack",
     };
     return (field>=0 && field<5) ? fieldNames[field] : nullptr;
@@ -395,7 +395,7 @@ int AckRepDescriptor::findField(const char *fieldName) const
     if (fieldName[0]=='i' && strcmp(fieldName, "idDest")==0) return base+0;
     if (fieldName[0]=='s' && strcmp(fieldName, "sourceId")==0) return base+1;
     if (fieldName[0]=='t' && strcmp(fieldName, "targetId")==0) return base+2;
-    if (fieldName[0]=='a' && strcmp(fieldName, "ackComponent")==0) return base+3;
+    if (fieldName[0]=='c' && strcmp(fieldName, "componentIndex")==0) return base+3;
     if (fieldName[0]=='a' && strcmp(fieldName, "ack")==0) return base+4;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
@@ -485,7 +485,7 @@ std::string AckRepDescriptor::getFieldValueAsString(void *object, int field, int
         case 0: return ulong2string(pp->getIdDest());
         case 1: return ulong2string(pp->getSourceId());
         case 2: return ulong2string(pp->getTargetId());
-        case 3: return ulong2string(pp->getAckComponent());
+        case 3: return ulong2string(pp->getComponentIndex());
         case 4: return bool2string(pp->getAck());
         default: return "";
     }
@@ -504,7 +504,7 @@ bool AckRepDescriptor::setFieldValueAsString(void *object, int field, int i, con
         case 0: pp->setIdDest(string2ulong(value)); return true;
         case 1: pp->setSourceId(string2ulong(value)); return true;
         case 2: pp->setTargetId(string2ulong(value)); return true;
-        case 3: pp->setAckComponent(string2ulong(value)); return true;
+        case 3: pp->setComponentIndex(string2ulong(value)); return true;
         case 4: pp->setAck(string2bool(value)); return true;
         default: return false;
     }

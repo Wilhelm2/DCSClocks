@@ -31,6 +31,5 @@ packet AppMsg{
     unsigned int seq;
     IntVecApp PC;
     unsigned int incrComponent;
-    unsigned long hash;
 }
     

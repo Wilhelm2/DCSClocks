@@ -1,3 +1,3 @@
-package dcs.simulations;
+package dcs;
 
 @license(LGPL);

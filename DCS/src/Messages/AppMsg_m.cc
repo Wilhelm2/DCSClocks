@@ -446,7 +446,6 @@ AppMsg::AppMsg(const char *name, short kind) :
 	this->targetId = 0;
 	this->seq = 0;
 	this->incrComponent = 0;
-	this->hash = 0;
 }
 
 AppMsg::AppMsg(const AppMsg& other) :
@@ -475,7 +474,6 @@ void AppMsg::copy(const AppMsg& other)
 	this->seq = other.seq;
 	this->PC = other.PC;
 	this->incrComponent = other.incrComponent;
-	this->hash = other.hash;
 }
 
 void AppMsg::parsimPack(omnetpp::cCommBuffer *b) const
@@ -486,7 +484,6 @@ void AppMsg::parsimPack(omnetpp::cCommBuffer *b) const
 	doParsimPacking(b, this->seq);
 	doParsimPacking(b, this->PC);
 	doParsimPacking(b, this->incrComponent);
-	doParsimPacking(b, this->hash);
 }
 
 void AppMsg::parsimUnpack(omnetpp::cCommBuffer *b)
@@ -497,7 +494,6 @@ void AppMsg::parsimUnpack(omnetpp::cCommBuffer *b)
 	doParsimUnpacking(b, this->seq);
 	doParsimUnpacking(b, this->PC);
 	doParsimUnpacking(b, this->incrComponent);
-	doParsimUnpacking(b, this->hash);
 }
 
 unsigned int AppMsg::getSourceId() const
@@ -548,16 +544,6 @@ unsigned int AppMsg::getIncrComponent() const
 void AppMsg::setIncrComponent(unsigned int incrComponent)
 {
 	this->incrComponent = incrComponent;
-}
-
-unsigned long AppMsg::getHash() const
-{
-	return this->hash;
-}
-
-void AppMsg::setHash(unsigned long hash)
-{
-	this->hash = hash;
 }
 
 class AppMsgDescriptor: public omnetpp::cClassDescriptor
@@ -627,7 +613,7 @@ const char *AppMsgDescriptor::getProperty(const char *propertyname) const
 int AppMsgDescriptor::getFieldCount() const
 {
 	omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
-	return basedesc ? 6 + basedesc->getFieldCount() : 6;
+	return basedesc ? 5 + basedesc->getFieldCount() : 5;
 }
 
 unsigned int AppMsgDescriptor::getFieldTypeFlags(int field) const
@@ -640,8 +626,8 @@ unsigned int AppMsgDescriptor::getFieldTypeFlags(int field) const
 		field -= basedesc->getFieldCount();
 	}
 	static unsigned int fieldTypeFlags[] = { FD_ISEDITABLE, FD_ISEDITABLE, FD_ISEDITABLE, FD_ISCOMPOUND | FD_ISCOBJECT,
-			FD_ISEDITABLE, FD_ISEDITABLE, };
-	return (field >= 0 && field < 6) ? fieldTypeFlags[field] : 0;
+			FD_ISEDITABLE, };
+	return (field >= 0 && field < 5) ? fieldTypeFlags[field] : 0;
 }
 
 const char *AppMsgDescriptor::getFieldName(int field) const
@@ -653,8 +639,8 @@ const char *AppMsgDescriptor::getFieldName(int field) const
 			return basedesc->getFieldName(field);
 		field -= basedesc->getFieldCount();
 	}
-	static const char *fieldNames[] = { "sourceId", "targetId", "seq", "PC", "incrComponent", "hash", };
-	return (field >= 0 && field < 6) ? fieldNames[field] : nullptr;
+	static const char *fieldNames[] = { "sourceId", "targetId", "seq", "PC", "incrComponent", };
+	return (field >= 0 && field < 5) ? fieldNames[field] : nullptr;
 }
 
 int AppMsgDescriptor::findField(const char *fieldName) const
@@ -671,8 +657,6 @@ int AppMsgDescriptor::findField(const char *fieldName) const
 		return base + 3;
 	if (fieldName[0] == 'i' && strcmp(fieldName, "incrComponent") == 0)
 		return base + 4;
-	if (fieldName[0] == 'h' && strcmp(fieldName, "hash") == 0)
-		return base + 5;
 	return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
@@ -686,8 +670,8 @@ const char *AppMsgDescriptor::getFieldTypeString(int field) const
 		field -= basedesc->getFieldCount();
 	}
 	static const char *fieldTypeStrings[] = { "unsigned int", "unsigned int", "unsigned int", "IntVecApp",
-			"unsigned int", "unsigned long", };
-	return (field >= 0 && field < 6) ? fieldTypeStrings[field] : nullptr;
+			"unsigned int", };
+	return (field >= 0 && field < 5) ? fieldTypeStrings[field] : nullptr;
 }
 
 const char **AppMsgDescriptor::getFieldPropertyNames(int field) const
@@ -785,8 +769,6 @@ std::string AppMsgDescriptor::getFieldValueAsString(void *object, int field, int
 		}
 		case 4:
 			return ulong2string(pp->getIncrComponent());
-		case 5:
-			return ulong2string(pp->getHash());
 		default:
 			return "";
 	}
@@ -816,9 +798,6 @@ bool AppMsgDescriptor::setFieldValueAsString(void *object, int field, int i, con
 			return true;
 		case 4:
 			pp->setIncrComponent(string2ulong(value));
-			return true;
-		case 5:
-			pp->setHash(string2ulong(value));
 			return true;
 		default:
 			return false;

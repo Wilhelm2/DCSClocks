@@ -19,21 +19,16 @@
 
 
 /**
- * Class generated from <tt>Messages/broadcastNotify.msg:19</tt> by nedtool.
+ * Class generated from <tt>Messages/broadcastNotify.msg:16</tt> by nedtool.
  * <pre>
- * //
- * // TODO generated message class
- * //
  * packet BroadcastNotify
  * {
- *     unsigned int i;
  * }
  * </pre>
  */
 class BroadcastNotify : public ::omnetpp::cPacket
 {
   protected:
-    unsigned int i;
 
   private:
     void copy(const BroadcastNotify& other);
@@ -52,8 +47,6 @@ class BroadcastNotify : public ::omnetpp::cPacket
     virtual void parsimUnpack(omnetpp::cCommBuffer *b) override;
 
     // field getter/setter methods
-    virtual unsigned int getI() const;
-    virtual void setI(unsigned int i);
 };
 
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const BroadcastNotify& obj) {obj.parsimPack(b);}

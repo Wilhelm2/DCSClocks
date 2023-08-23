@@ -36,7 +36,6 @@
  *     unsigned int seq;
  *     IntVecApp PC;
  *     unsigned int incrComponent;
- *     unsigned long hash;
  * }
  * </pre>
  */
@@ -48,7 +47,6 @@ class AppMsg : public ::omnetpp::cPacket
     unsigned int seq;
     IntVecApp PC;
     unsigned int incrComponent;
-    unsigned long hash;
 
   private:
     void copy(const AppMsg& other);
@@ -78,8 +76,6 @@ class AppMsg : public ::omnetpp::cPacket
     virtual void setPC(const IntVecApp& PC);
     virtual unsigned int getIncrComponent() const;
     virtual void setIncrComponent(unsigned int incrComponent);
-    virtual unsigned long getHash() const;
-    virtual void setHash(unsigned long hash);
 };
 
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const AppMsg& obj) {obj.parsimPack(b);}

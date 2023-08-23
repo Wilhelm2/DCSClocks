@@ -24,8 +24,8 @@ void Node::initialize()
 	cSimpleModule::initialize();
 	if (DeliveryControl == Delivery::DCS)
 		scheduleAt(SimTime(1, SIMTIME_S), &clockManagment.componentSizeCheckTimer);
-	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DynamicClockSet.ut"));
-	control = dynamic_cast<DeliveryController*>(getModuleByPath("DynamicClockSet.control"));
+	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DCS.ut"));
+	control = dynamic_cast<DeliveryController*>(getModuleByPath("DCS.control"));
 
 	setOutGate();
 	sendInitMessage();
@@ -61,8 +61,8 @@ void Node::handleMessage(cMessage *msg)
 			RecvAckComponent(m);
 		else if (AckRep* m = dynamic_cast<AckRep*>(msg))
 			RecvAckRep(m);
-		else if (DeleteComponent* m = dynamic_cast<DeleteComponent*>(msg))
-			RecvDeleteComponent(m);
+		else if (AckRoundDecision* m = dynamic_cast<AckRoundDecision*>(msg))
+			RecvAckRoundDecision(m);
 		else
 		{
 			std::cerr << "MESSAGE DE TYPE INCONNU REÇU !" << msg << endl;
@@ -200,7 +200,7 @@ AckComponent* Node::createAckComponent()
 	AckComponent * m = new AckComponent();
 	m->setSourceId(id);
 	m->setComponent(clockManagment.clock[clockManagment.clock.activeComponents - 1].clock);
-	m->setAckComponent(clockManagment.clock.activeComponents);
+	m->setComponentIndex(clockManagment.clock.activeComponents);
 	return m;
 }
 
@@ -230,14 +230,14 @@ void Node::expandClockCheck()
 
 void Node::RecvAckComponent(AckComponent* m)
 {
-	bool reply = clockManagment.acknowledgesComponentDeactivation(m->getAckComponent(), m->getComponent());
-	reply |= !componentUsefulToPendingMessage(m->getAckComponent(), m->getComponent());
+	bool reply = clockManagment.acknowledgesComponentDeactivation(m->getComponentIndex(), m->getComponent());
+	reply |= !componentUsefulToPendingMessage(m->getComponentIndex(), m->getComponent());
 	cerr << "Node " << id << " replies to ackComponent: " << reply << " activeComp "
 			<< clockManagment.clock.activeComponents << " localActiveComp " << clockManagment.nbLocalActiveComponents
 			<< endl;
 
 	clockManagment.ackData.beginAckRound();
-	send(createAckRep(reply, m->getSourceId(), m->getAckComponent()), outGate);
+	send(createAckRep(reply, m->getSourceId(), m->getComponentIndex()), outGate);
 }
 
 bool Node::componentUsefulToPendingMessage(unsigned int componentIndex, ProbabilisticClock component)
@@ -259,7 +259,7 @@ AckRep* Node::createAckRep(bool reply, unsigned int destination, unsigned int co
 	mrep->setAck(reply);
 	mrep->setIdDest(destination);
 	mrep->setSourceId(id);
-	mrep->setAckComponent(component);
+	mrep->setComponentIndex(component);
 	return mrep;
 }
 
@@ -272,7 +272,7 @@ void Node::RecvAckRep(AckRep* m)
 			clockManagment.reduceClock();
 		cerr << "NODE " << id << " Send deleteCompoenent " << clockManagment.acknowledgementDecision(ut->nbNodes)
 				<< endl;
-		send(createDeleteComponent(clockManagment.acknowledgementDecision(ut->nbNodes), id, m->getAckComponent()),
+		send(createDeleteComponent(clockManagment.acknowledgementDecision(ut->nbNodes), id, m->getComponentIndex()),
 				outGate);
 	}
 	else
@@ -280,21 +280,21 @@ void Node::RecvAckRep(AckRep* m)
 				<< clockManagment.ackData.negativeAck << endl;
 }
 
-DeleteComponent* Node::createDeleteComponent(bool decision, unsigned int sourceId, unsigned int componentIndex)
+AckRoundDecision* Node::createDeleteComponent(bool decision, unsigned int sourceId, unsigned int componentIndex)
 {
-	DeleteComponent* msg = new DeleteComponent();
-	msg->setAckComponent(componentIndex);
+	AckRoundDecision* msg = new AckRoundDecision();
+	msg->setComponentIndex(componentIndex);
 	msg->setSourceId(id);
-	msg->setAck(decision);
+	msg->setDecision(decision);
 	return msg;
 }
 
-void Node::RecvDeleteComponent(DeleteComponent* m)
+void Node::RecvAckRoundDecision(AckRoundDecision* m)
 {
-	if (m->getAck())
+	if (m->getDecision())
 	{
-		cerr << "NODE " << id << " RecvDeleteComponent reply " << m->getAckComponent() << endl;
-		if (clockManagment.clock.activeComponents == m->getAckComponent())
+		cerr << "NODE " << id << " RecvDeleteComponent reply " << m->getComponentIndex() << endl;
+		if (clockManagment.clock.activeComponents == m->getComponentIndex())
 		{
 			if (clockManagment.nbLocalActiveComponents == clockManagment.clock.activeComponents)
 				clockManagment.nbLocalActiveComponents--;

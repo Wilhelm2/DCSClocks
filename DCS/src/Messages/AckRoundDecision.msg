@@ -11,17 +11,11 @@
 // 
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see http://www.gnu.org/licenses/.
-// 
-
-package dcs;
-
 //
-// TODO auto-generated module
-//
-simple Node
-{
-    parameters:
 
-    gates:
-        inout neighbour[]; //[numNodes];
+packet AckRoundDecision{
+    bool decision;
+    unsigned int componentIndex;
+    unsigned int sourceId;
+    unsigned int targetId;
 }

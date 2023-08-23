@@ -181,7 +181,6 @@ Register_Class(BroadcastNotify)
 
 BroadcastNotify::BroadcastNotify(const char *name, short kind) : ::omnetpp::cPacket(name,kind)
 {
-    this->i = 0;
 }
 
 BroadcastNotify::BroadcastNotify(const BroadcastNotify& other) : ::omnetpp::cPacket(other)
@@ -203,29 +202,16 @@ BroadcastNotify& BroadcastNotify::operator=(const BroadcastNotify& other)
 
 void BroadcastNotify::copy(const BroadcastNotify& other)
 {
-    this->i = other.i;
 }
 
 void BroadcastNotify::parsimPack(omnetpp::cCommBuffer *b) const
 {
     ::omnetpp::cPacket::parsimPack(b);
-    doParsimPacking(b,this->i);
 }
 
 void BroadcastNotify::parsimUnpack(omnetpp::cCommBuffer *b)
 {
     ::omnetpp::cPacket::parsimUnpack(b);
-    doParsimUnpacking(b,this->i);
-}
-
-unsigned int BroadcastNotify::getI() const
-{
-    return this->i;
-}
-
-void BroadcastNotify::setI(unsigned int i)
-{
-    this->i = i;
 }
 
 class BroadcastNotifyDescriptor : public omnetpp::cClassDescriptor
@@ -293,7 +279,7 @@ const char *BroadcastNotifyDescriptor::getProperty(const char *propertyname) con
 int BroadcastNotifyDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 1+basedesc->getFieldCount() : 1;
+    return basedesc ? 0+basedesc->getFieldCount() : 0;
 }
 
 unsigned int BroadcastNotifyDescriptor::getFieldTypeFlags(int field) const
@@ -304,10 +290,7 @@ unsigned int BroadcastNotifyDescriptor::getFieldTypeFlags(int field) const
             return basedesc->getFieldTypeFlags(field);
         field -= basedesc->getFieldCount();
     }
-    static unsigned int fieldTypeFlags[] = {
-        FD_ISEDITABLE,
-    };
-    return (field>=0 && field<1) ? fieldTypeFlags[field] : 0;
+    return 0;
 }
 
 const char *BroadcastNotifyDescriptor::getFieldName(int field) const
@@ -318,17 +301,12 @@ const char *BroadcastNotifyDescriptor::getFieldName(int field) const
             return basedesc->getFieldName(field);
         field -= basedesc->getFieldCount();
     }
-    static const char *fieldNames[] = {
-        "i",
-    };
-    return (field>=0 && field<1) ? fieldNames[field] : nullptr;
+    return nullptr;
 }
 
 int BroadcastNotifyDescriptor::findField(const char *fieldName) const
 {
     omnetpp::cClassDescriptor *basedesc = getBaseClassDescriptor();
-    int base = basedesc ? basedesc->getFieldCount() : 0;
-    if (fieldName[0]=='i' && strcmp(fieldName, "i")==0) return base+0;
     return basedesc ? basedesc->findField(fieldName) : -1;
 }
 
@@ -340,10 +318,7 @@ const char *BroadcastNotifyDescriptor::getFieldTypeString(int field) const
             return basedesc->getFieldTypeString(field);
         field -= basedesc->getFieldCount();
     }
-    static const char *fieldTypeStrings[] = {
-        "unsigned int",
-    };
-    return (field>=0 && field<1) ? fieldTypeStrings[field] : nullptr;
+    return nullptr;
 }
 
 const char **BroadcastNotifyDescriptor::getFieldPropertyNames(int field) const
@@ -410,7 +385,6 @@ std::string BroadcastNotifyDescriptor::getFieldValueAsString(void *object, int f
     }
     BroadcastNotify *pp = (BroadcastNotify *)object; (void)pp;
     switch (field) {
-        case 0: return ulong2string(pp->getI());
         default: return "";
     }
 }
@@ -425,7 +399,6 @@ bool BroadcastNotifyDescriptor::setFieldValueAsString(void *object, int field, i
     }
     BroadcastNotify *pp = (BroadcastNotify *)object; (void)pp;
     switch (field) {
-        case 0: pp->setI(string2ulong(value)); return true;
         default: return false;
     }
 }
@@ -438,9 +411,7 @@ const char *BroadcastNotifyDescriptor::getFieldStructName(int field) const
             return basedesc->getFieldStructName(field);
         field -= basedesc->getFieldCount();
     }
-    switch (field) {
-        default: return nullptr;
-    };
+    return nullptr;
 }
 
 void *BroadcastNotifyDescriptor::getFieldStructValuePointer(void *object, int field, int i) const

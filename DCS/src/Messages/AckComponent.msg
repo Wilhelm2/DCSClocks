@@ -29,6 +29,6 @@ packet AckComponent{
     IntVecACK component; 
     unsigned int sourceId;
     unsigned int targetId;
-    unsigned int ackComponent;
+    unsigned int componentIndex;
 }
     

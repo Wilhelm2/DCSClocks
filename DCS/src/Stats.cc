@@ -20,15 +20,15 @@ Define_Module(Stats);
 void Stats::initialize()
 {
 	char tmp[40];
-	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DynamicClockSet.ut"));
+	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DCS.ut"));
 	nextstep = ut->LOAD_AMPLITUDE;
 	step = 200 * 2 / ut->LOAD_AMPLITUDE;
 	for (unsigned int i = 0; i < ut->nbNodes; i++)
 	{
-		sprintf(tmp, "DynamicClockSet.Nodes[%d]", i);
+		sprintf(tmp, "DCS.Nodes[%d]", i);
 		nodes.push_back(dynamic_cast<Node*>(getModuleByPath(tmp)));
 	}
-	control = dynamic_cast<DeliveryController*>(getModuleByPath("DynamicClockSet.control"));
+	control = dynamic_cast<DeliveryController*>(getModuleByPath("DCS.control"));
 
 	scheduleAt(simTime() + *(new SimTime(1, SIMTIME_S)), new cMessage());
 

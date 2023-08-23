@@ -26,7 +26,7 @@
  *     unsigned int idDest;
  *     unsigned int sourceId;
  *     unsigned int targetId;
- *     unsigned int ackComponent;
+ *     unsigned int componentIndex;
  *     bool ack;
  * }
  * </pre>
@@ -37,7 +37,7 @@ class AckRep : public ::omnetpp::cPacket
     unsigned int idDest;
     unsigned int sourceId;
     unsigned int targetId;
-    unsigned int ackComponent;
+    unsigned int componentIndex;
     bool ack;
 
   private:
@@ -63,8 +63,8 @@ class AckRep : public ::omnetpp::cPacket
     virtual void setSourceId(unsigned int sourceId);
     virtual unsigned int getTargetId() const;
     virtual void setTargetId(unsigned int targetId);
-    virtual unsigned int getAckComponent() const;
-    virtual void setAckComponent(unsigned int ackComponent);
+    virtual unsigned int getComponentIndex() const;
+    virtual void setComponentIndex(unsigned int componentIndex);
     virtual bool getAck() const;
     virtual void setAck(bool ack);
 };

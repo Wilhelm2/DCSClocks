@@ -13,9 +13,5 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-//
-// TODO generated message class
-//
 packet BroadcastNotify {
-	unsigned int i;
 }

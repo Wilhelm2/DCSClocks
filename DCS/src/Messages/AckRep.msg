@@ -18,6 +18,6 @@ packet AckRep
 	unsigned int idDest;
     unsigned int sourceId;
     unsigned int targetId;
-	unsigned int ackComponent;
+	unsigned int componentIndex;
 	bool ack;   
 }
