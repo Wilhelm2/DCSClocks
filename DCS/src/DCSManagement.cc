@@ -134,3 +134,11 @@ bool DCSManagement::acknowledgementDecision(unsigned int nbNodes)
 	else
 		return false;
 }
+
+void DCSManagement::IncrementPC(vector<unsigned int> clockEntries)
+{
+	clock.incrementEntries( { incrComponent }, clockEntries);
+	if (incrComponent == clock.activeComponents - 1)
+		timeIncrLastComponent = simTime(); // keeps track of when incremented the last component
+}
+

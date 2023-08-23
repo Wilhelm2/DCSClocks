@@ -41,17 +41,9 @@ using namespace std;
 
 typedef struct s_stats_Node
 {
-	int falseDeliveredMsgHashSuccess = 0;
-	int falseDeliveredMsgHashFail = 0;
-	int rightDeliveredMsgHashSuccess = 0;
-	int rightDeliveredMsgHashFail = 0;
-
+	unsigned int falseDeliveredMsg = 0;
 	int nbDeliveries = 0;
 	int controlDataSize = 0;
-	int falseDetectedDependencies = 0;
-	int nbHashs = 0;
-	int msgSize[2000];
-	int nbMsgCombinaisons[LIMIT_HASHS + 1];
 
 	int nbBroadcasts = 0;
 	int localActiveComponentsWhenBroadcast = 0;
@@ -65,11 +57,10 @@ public:
 	void sendInitMessage();
 	virtual void handleMessage(cMessage *msg) override;
 
-	AppMsg* sendAppMsg();
+	void sendAppMsg();
 	AppMsg* createAppMsg();
 	void RecvAppMsg(AppMsg*m);
 	bool PC_test(unsigned int id, const DCS &PC, unsigned int PCMsgIncrComponent);
-	void IncrementPC();
 	bool deliverMsg(unsigned int idMsg, unsigned int seqMsg, DCS v, simtime_t rcvTime, unsigned int MsgIncrComponent);
 	void iterativeDelivery();
 

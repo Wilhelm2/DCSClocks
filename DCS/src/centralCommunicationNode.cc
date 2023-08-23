@@ -106,7 +106,7 @@ void CentralCommunicationNode::setTargetId(cMessage* msg, unsigned int targetId)
 
 void CentralCommunicationNode::handleBroadcastNotify()
 {
-	cout << "ORDER NODE " << nodeToBroadcast << " to broadcast a message " << endl;
+	cout << "Order node " << nodeToBroadcast << " to broadcast a message " << endl;
 	send(new BroadcastNotify(), gateToTarget[nodeToBroadcast]);
 	nodeToBroadcast = (nodeToBroadcast + 1) % ut->nbNodes;
 	scheduleAt(simTime() + 1. / ut->load, &broadcastTimer);

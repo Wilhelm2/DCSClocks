@@ -44,9 +44,6 @@ public:
 	void WriteClockSize();
 	void WriteDeliveries();
 
-	std::ofstream nbRecoveriesFile;
-	std::ofstream nbHashsFile;
-	std::ofstream nbMsgHashsFile;
 	std::ofstream aloneNumbers;
 
 	std::ofstream broadcastMessageTimeFile;
@@ -59,7 +56,6 @@ public:
 	void incrementFalseDetected(unsigned int entry);
 	void incrementPlaceOfFalseDetected(unsigned int entry);
 
-	void clearDelivered();
 	void loadHandler();
 	int nextstep;
 	float step = 0;

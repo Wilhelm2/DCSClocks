@@ -36,6 +36,7 @@ OBJS = \
     $O/DeliveryController.o \
     $O/Node.o \
     $O/Stats.o \
+    $O/TotalDependencies.o \
     $O/Utilitaries.o \
     $O/Clock/DCS.o \
     $O/Clock/ProbabilisticClock.o \

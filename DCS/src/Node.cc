@@ -23,11 +23,9 @@ void Node::initialize()
 {
 	cSimpleModule::initialize();
 	if (DeliveryControl == Delivery::DCS)
-		scheduleAt(SimTime(1001, SIMTIME_MS), &clockManagment.componentSizeCheckTimer);
+		scheduleAt(SimTime(1, SIMTIME_S), &clockManagment.componentSizeCheckTimer);
 	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DynamicClockSet.ut"));
 	control = dynamic_cast<DeliveryController*>(getModuleByPath("DynamicClockSet.control"));
-	memset(stat.nbMsgCombinaisons, 0, sizeof(stat.nbMsgCombinaisons));
-	memset(stat.msgSize, 0, sizeof(stat.msgSize));
 
 	setOutGate();
 	sendInitMessage();
@@ -74,27 +72,25 @@ void Node::handleMessage(cMessage *msg)
 	}
 }
 
-AppMsg* Node::sendAppMsg()
+void Node::sendAppMsg()
 {
 	if (DeliveryControl == Delivery::DCS)
 		expandClockCheck();
-	control->sendMessage(id, seq);
-	control->recvMessage(id, seq, id, true);
+	seq++;
+	clockManagment.IncrementPC(ut->clockEntries[id]);
 
 	stat.nbBroadcasts++;
 	stat.localActiveComponentsWhenBroadcast += clockManagment.nbLocalActiveComponents;
 	stat.controlDataSize += clockManagment.clock.activeComponents * sizeof(ut->clockLength) * sizeof(unsigned int);
 
-	seq++;
-	IncrementPC();
-	AppMsg* m = createAppMsg();
-
 	dep d(id, seq, simTime(), clockManagment.incrComponent, clockManagment.clock);
 	delivered.push_back(d);
-	send(m, outGate);
+	send(createAppMsg(), outGate);
+
+	control->notifySendMessage(id, seq);
+	control->notifyDeliverMessage( { id, seq }, id);
 	assert(clockManagment.clock.activeComponents < clockManagment.incrComponent); // Verifies that does not increment an inactive component
 	clearDelivered();
-	return m;
 }
 
 AppMsg* Node::createAppMsg()
@@ -112,9 +108,7 @@ void Node::RecvAppMsg(AppMsg*m)
 	receivedTime.push_back(simTime());
 
 	if (DeliveryControl == Delivery::NOTHING)
-	{
 		deliverMsg(m->getSourceId(), m->getSeq(), m->getPC(), simTime(), m->getIncrComponent());
-	}
 	else if (DeliveryControl == Delivery::PCcomparision || DeliveryControl == Delivery::DCS)
 	{
 
@@ -128,7 +122,6 @@ void Node::RecvAppMsg(AppMsg*m)
 			dep d(m->getSourceId(), m->getSeq(), simTime(), m->getIncrComponent(), m->getPC());
 			pendingMsg.push_back(d);
 		}
-		return;
 	}
 }
 
@@ -152,23 +145,16 @@ bool Node::PC_test(unsigned int idMsg, const DCS &PCMsg, unsigned int PCMsgIncrC
 	return clockManagment.clock.satisfiesDeliveryConditions(PCMsg, { PCMsgIncrComponent }, ut->clockEntries[idMsg]);
 }
 
-void Node::IncrementPC()
-{
-	clockManagment.clock.incrementEntries( { clockManagment.incrComponent }, ut->clockEntries[id]);
-	if (clockManagment.incrComponent == clockManagment.clock.activeComponents - 1) // keep track when incremented the last component
-		clockManagment.timeIncrLastComponent = simTime();
-}
-
 bool Node::deliverMsg(unsigned int idMsg, unsigned int seqMsg, DCS v, simtime_t rcvTime, unsigned int MsgIncrComponent)
 {
 	stat.nbDeliveries++;
-	if (!control->canDeliver(idMsg, seqMsg, id))
-		stat.falseDeliveredMsgHashFail++;
+	if (!control->canCausallyDeliverMessage( { idMsg, seqMsg }, id))
+		stat.falseDeliveredMsg++;
 
 	dep d(idMsg, seqMsg, rcvTime, MsgIncrComponent, v);
 	delivered.push_back(d);
-	clockManagment.clock.incrementEntries( { MsgIncrComponent }, ut->clockEntries[idMsg]);
-	return control->recvMessage(idMsg, seqMsg, id, true);
+	clockManagment.IncrementPC(ut->clockEntries[idMsg]);
+	return control->notifyDeliverMessage( { idMsg, seqMsg }, id);
 }
 
 void Node::iterativeDelivery()
@@ -305,7 +291,6 @@ DeleteComponent* Node::createDeleteComponent(bool decision, unsigned int sourceI
 
 void Node::RecvDeleteComponent(DeleteComponent* m)
 {
-	clockManagment.ackData.reset();
 	if (m->getAck())
 	{
 		cerr << "NODE " << id << " RecvDeleteComponent reply " << m->getAckComponent() << endl;
@@ -318,6 +303,7 @@ void Node::RecvDeleteComponent(DeleteComponent* m)
 	}
 	else
 		clockManagment.incrComponent = rand() % clockManagment.clock.size();
+	clockManagment.ackData.reset();
 	iterativeDelivery();
 }
 

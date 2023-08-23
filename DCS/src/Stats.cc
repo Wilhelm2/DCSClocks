@@ -23,7 +23,7 @@ void Stats::initialize()
 	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DynamicClockSet.ut"));
 	nextstep = ut->LOAD_AMPLITUDE;
 	step = 200 * 2 / ut->LOAD_AMPLITUDE;
-	for (int i = 0; i < ut->nbNodes; i++)
+	for (unsigned int i = 0; i < ut->nbNodes; i++)
 	{
 		sprintf(tmp, "DynamicClockSet.Nodes[%d]", i);
 		nodes.push_back(dynamic_cast<Node*>(getModuleByPath(tmp)));
@@ -37,9 +37,6 @@ void Stats::initialize()
 	float channelDelay = CHANNELDELAY / 1000000;
 	std::cerr << "channelDelay " << channelDelay << endl;
 
-	nbRecoveriesFile.open("data/nbRecoveriesFile.dat", std::ios::out);
-	nbHashsFile.open("data/nbHashsFile.dat", std::ios::out);
-	nbMsgHashsFile.open("data/nbMsgHashsFile.dat", std::ios::out);
 	aloneNumbers.open("data/aloneNumbers.dat", std::ios::out);
 	broadcastMessageTimeFile.open("data/broadcastMessageTimeFile.dat", std::ios::out);
 	messageLoadFile.open("data/messageLoadFile.dat", std::ios::out);
@@ -90,37 +87,12 @@ void Stats::WriteClockSize()
 
 void Stats::WriteDeliveries()
 {
-	int falseDeliveredMsgHashSuccess = 0;
-	int falseDeliveredMsgHashFail = 0;
-	int rightDeliveredMsgHashSuccess = 0;
-	int rightDeliveredMsgHashFail = 0;
+	int falseDeliveredMsg = 0;
 	for (Node* n : nodes)
-	{
-		falseDeliveredMsgHashSuccess += n->stat.falseDeliveredMsgHashSuccess;
-		falseDeliveredMsgHashFail += n->stat.falseDeliveredMsgHashFail;
-		rightDeliveredMsgHashSuccess += n->stat.rightDeliveredMsgHashSuccess;
-		rightDeliveredMsgHashFail += n->stat.rightDeliveredMsgHashFail;
-	}
-	deliveriesFile << simTime() << " " << falseDeliveredMsgHashSuccess << " " << falseDeliveredMsgHashFail << " "
-			<< rightDeliveredMsgHashSuccess << " " << rightDeliveredMsgHashFail << endl;
-	cerr << "falseDeliveredMsgHashSuccess " << falseDeliveredMsgHashSuccess << " falseDeliveredMsgHashFail "
-			<< falseDeliveredMsgHashFail << " rightDeliveredMsgHashSuccess " << rightDeliveredMsgHashSuccess
-			<< " rightDeliveredMsgHashFail " << rightDeliveredMsgHashFail << endl;
-}
+		falseDeliveredMsg += n->stat.falseDeliveredMsg;
 
-void Stats::WriteTotalNbHashs()
-{
-	float totalHashs = 0;
-	int totalDeliveries = 0;
-	for (Node* n : nodes)
-	{
-		nbHashsFile << n->stat.nbHashs << " ";
-		totalHashs += n->stat.nbHashs;
-		totalDeliveries += n->stat.nbDeliveries;
-	}
-	nbHashsFile << endl;
-	nbHashsFile << totalHashs;
-	nbHashsFile << totalHashs / totalDeliveries << endl;
+	deliveriesFile << simTime() << " " << falseDeliveredMsg << endl;
+	cerr << "falseDeliveredMsg " << falseDeliveredMsg << endl;
 }
 
 void Stats::WriteAloneNumbers()
@@ -134,8 +106,7 @@ void Stats::WriteAloneNumbers()
 		totalMessages += n->seq;
 		totalDeliveredMsg += n->stat.nbDeliveries;
 		totalControlDataSize += n->stat.controlDataSize;
-		totalNbFalseDeliveries += n->stat.falseDeliveredMsgHashFail;
-		totalNbFalseDeliveries += n->stat.falseDeliveredMsgHashSuccess;
+		totalNbFalseDeliveries += n->stat.falseDeliveredMsg;
 	}
 	if (totalDeliveredMsg == 0)
 	{
@@ -147,12 +118,6 @@ void Stats::WriteAloneNumbers()
 	std::cerr << "Number of false delivered messages " << totalNbFalseDeliveries << endl;
 	std::cerr << "RATE of false delivered messages " << totalNbFalseDeliveries / totalDeliveredMsg << endl;
 
-}
-
-void Stats::clearDelivered()
-{
-	for (Node* n : nodes)
-		n->clearDelivered();
 }
 
 #define MAXLOAD 200
@@ -248,7 +213,6 @@ void Stats::handleMessage(cMessage *msg)
 //    for(int i=0;i<nbNodes;i++)
 //        control->printHorlogeErr(control->Horloges[i]);
 
-	clearDelivered();
 	/*for(int j=0;j<nodes.size(); j++)
 	 {
 	 vector<int> res = nodes[j]->mostRecentMsg();
@@ -257,31 +221,6 @@ void Stats::handleMessage(cMessage *msg)
 	 std::cerr << res[i] << "\t";
 	 std:cerr << endl;
 	 }*/
-
-	int msgSize[2000];
-	int nbMsgCombinaisons[LIMIT_HASHS + 1];
-	memset(msgSize, 0, sizeof(msgSize));
-	memset(nbMsgCombinaisons, 0, (LIMIT_HASHS + 1) * sizeof(int));
-	cout << "MSGSIZE " << endl;
-	for (int i = 0; i < 2000; i++)
-	{
-		for (Node* n : nodes)
-		{
-			msgSize[i] += n->stat.msgSize[i];
-		}
-		cout << msgSize[i] << "\t";
-	}
-	cout << endl;
-	cout << "nbMsgCombinations " << endl;
-	for (int i = 0; i < LIMIT_HASHS; i++)
-	{
-		for (Node* n : nodes)
-		{
-			nbMsgCombinaisons[i] += n->stat.nbMsgCombinaisons[i];
-		}
-		cout << nbMsgCombinaisons[i] << "\t";
-	}
-	cout << endl;
 
 	cerr << "NOMBRE DE DELIVERY/NOEUD" << endl;
 	for (Node* n : nodes)
@@ -306,7 +245,6 @@ void Stats::handleMessage(cMessage *msg)
 
 	if (simTime() == 300)
 	{
-		WriteTotalNbHashs();
 		WriteAloneNumbers();
 		nodes[0]->clockManagment.clock.print();
 		vector<int> countIncrComponents;
@@ -315,9 +253,8 @@ void Stats::handleMessage(cMessage *msg)
 		{
 			countIncrComponents[n->clockManagment.incrComponent]++;
 		}
-		for (int i = 0; i < countIncrComponents.size(); i++)
+		for (unsigned int i = 0; i < countIncrComponents.size(); i++)
 			cerr << i << ":" << countIncrComponents[i] << endl;
 		exit(0);
 	}
-
 }

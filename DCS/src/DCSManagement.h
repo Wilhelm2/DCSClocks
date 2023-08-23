@@ -67,6 +67,7 @@ public:
 	void reduceClock();
 	bool acknowledgesComponentDeactivation(unsigned int componentId, ProbabilisticClock component);
 	bool acknowledgementDecision(unsigned int nbNodes);
+	void IncrementPC(vector<unsigned int> clockEntries);
 
 	DCS clock;
 	unsigned int nbLocalActiveComponents = 1;
