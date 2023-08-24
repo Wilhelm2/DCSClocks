@@ -94,7 +94,7 @@ public:
 	{
 		NOTHING, PCcomparision, DCS
 	};
-	Delivery DeliveryControl = Delivery::PCcomparision;
+	Delivery DeliveryControl = Delivery::DCS;
 
 	stats_Node stat;
 

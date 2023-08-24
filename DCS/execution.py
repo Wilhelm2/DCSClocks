@@ -34,6 +34,7 @@ for c in clockSize:
 		
 #		subprocess.check_call(["bash","-c","./out/gcc-debug/src/DynamicClockSet_dbg -f ../codeGraphes/omnetpp.ini -n src -u Cmdenv > /dev/null" ], cwd='../codeDCS')	
 #		subprocess.check_call(["bash","-c","gdb --args ./out/gcc-debug/src/DCS_dbg -f simulations/omnetpp.ini -n src -u Cmdenv " ])	
+#		subprocess.check_call(["bash","-c","valgrind ./out/gcc-debug/src/DCS_dbg -f simulations/omnetpp.ini -n src -u Cmdenv " ])	
 		
 		subprocess.check_call(["bash","-c","mkdir -p Graphs/data/" + str(n) + "_" + str(c)])
 		subprocess.check_call(["bash","-c","cp -r simulations/data/* Graphs/data/" + str(n) + "_" + str(c)  ])

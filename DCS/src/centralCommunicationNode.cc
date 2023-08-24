@@ -23,7 +23,7 @@ void CentralCommunicationNode::initialize()
 	memset(delayIntervals, 0, sizeof(delayIntervals));
 	gateToTarget.resize(ut->nbNodes);
 
-	scheduleAt(simTime() + 1. / ut->load, &broadcastTimer);
+	scheduleAt(simTime() + 1. / ut->loadVector[ut->indexLoad], &broadcastTimer);
 }
 
 void CentralCommunicationNode::handleMessage(cMessage *msg)
@@ -109,7 +109,7 @@ void CentralCommunicationNode::handleBroadcastNotify()
 	cout << "Order node " << nodeToBroadcast << " to broadcast a message " << endl;
 	send(new BroadcastNotify(), gateToTarget[nodeToBroadcast]);
 	nodeToBroadcast = (nodeToBroadcast + 1) % ut->nbNodes;
-	scheduleAt(simTime() + 1. / ut->load, &broadcastTimer);
+	scheduleAt(simTime() + 1. / ut->loadVector[ut->indexLoad], &broadcastTimer);
 }
 
 void CentralCommunicationNode::handleInit(Init* m)
@@ -156,7 +156,7 @@ unsigned int CentralCommunicationNode::computeDelay(unsigned int sourceId, unsig
 
 void CentralCommunicationNode::handleAckRep(AckRep* m)
 {
-	scheduleAt(SimTime(computeDelay(m->getSourceId(), m->getIdDest()), SIMTIME_US), m);
+	scheduleAt(simTime() + SimTime(computeDelay(m->getSourceId(), m->getIdDest()), SIMTIME_US), m);
 }
 
 void CentralCommunicationNode::incrementDelayIntervals(unsigned int entry)

@@ -56,10 +56,6 @@ public:
 	void incrementFalseDetected(unsigned int entry);
 	void incrementPlaceOfFalseDetected(unsigned int entry);
 
-	void loadHandler();
-	int nextstep;
-	float step = 0;
-
 };
 
 #endif

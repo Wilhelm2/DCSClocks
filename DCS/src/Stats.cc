@@ -21,8 +21,6 @@ void Stats::initialize()
 {
 	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DCS.ut"));
 	control = dynamic_cast<DeliveryController*>(getModuleByPath("DCS.control"));
-	nextstep = ut->LOAD_AMPLITUDE;
-	step = 200 * 2 / ut->LOAD_AMPLITUDE;
 	for (unsigned int i = 0; i < ut->nbNodes; i++)
 		nodes.push_back(dynamic_cast<Node*>(getModuleByPath(("DCS.Nodes[" + to_string(i) + "]").c_str())));
 
@@ -55,7 +53,7 @@ void Stats::initialize()
 
 void Stats::WriteMessageLoad()
 {
-	messageLoadFile << simTime() << " " << ut->load << endl; // division par 1000 car delaySend en ms
+	messageLoadFile << simTime() << " " << ut->loadVector[ut->indexLoad] << endl;
 }
 
 void Stats::WriteClockSize()
@@ -116,90 +114,6 @@ void Stats::WriteAloneNumbers()
 
 }
 
-#define MAXLOAD 200
-void Stats::loadHandler()
-{
-	/*
-	 cerr<<simTime()<< " ";
-	 ut->load = 100;
-
-	 if(simTime()==50) // fait du load balancing
-	 {
-	 for(int i =0; i < nodes.size();i++)
-	 nodes[i]->incrComponent = 0; // la moitié des processus vont incr le composant 0
-	 }
-
-	 if(simTime()==70)
-	 {
-	 for(int i =0; i < nodes.size()/2;i++)
-	 nodes[i]->incrComponent = rand() %nodes[i]->nbActiveComponents ;
-	 }
-	 if(simTime()==90)
-	 {
-	 for(int i =0; i < nodes.size();i++)
-	 nodes[i]->incrComponent = rand() %nodes[i]->nbActiveComponents ;
-	 }
-
-
-	 return;
-
-	 if(simTime()==300)
-	 return;
-	 */
-
-	/*
-	 if( simTime() == nextstep)
-	 {
-	 ut->LOAD_AMPLITUDE -= 15;
-	 ut->load =20;
-	 nextstep += ut->LOAD_AMPLITUDE;
-	 step = (200.*2.)/ut->LOAD_AMPLITUDE;
-	 }
-
-	 cerr<< "nextstep " << nextstep << " utloadamplitude " << ut->LOAD_AMPLITUDE<<endl;
-	 if(simTime() < nextstep -ut->LOAD_AMPLITUDE/2)
-	 //    if(((int)simTime().dbl()) % ut->LOAD_AMPLITUDE < 0.5*ut->LOAD_AMPLITUDE) // phase ascendante
-	 {
-	 ut->load += step;
-	 //        ut->load += ut->baseload*LOAD_MULTIPLIER*2/ut->LOAD_AMPLITUDE;
-	 cerr<< "increase load to " << ut->load<<endl;
-	 }
-	 else
-	 {
-	 ut->load -= step;
-	 ut->load = max(1,ut->load);
-	 //        ut->load -= ut->baseload*LOAD_MULTIPLIER*2/ut->LOAD_AMPLITUDE;
-	 cerr<< "decrease load to "<< ut->load<<endl;
-	 }
-	 */
-
-// load random
-	if (fmod(simTime().dbl(), 10) == 0)
-	{
-
-		if (simTime() < 60)
-			ut->targetload = rand() % 30;
-		else if (simTime() < 80)
-			ut->targetload = rand() % 100 + 100;
-		else if (simTime() < 140)
-			ut->targetload = rand() % 30;
-		else if (simTime() < 160)
-			ut->targetload = rand() % 100 + 100;
-		else if (simTime() < 220)
-			ut->targetload = rand() % 30;
-		else if (simTime() < 240)
-			ut->targetload = rand() % 100 + 100;
-		else
-			ut->targetload = rand() % 50;
-		step = (((int) ut->targetload) - ((int) ut->load)) / 10;
-		cerr << "NEW TARGET LOAD FROM " << ut->load << " TO LOAD " << ut->targetload << endl;
-//        ut->load = (ut->targetload - ut->baseload) / 10;
-	}
-	ut->load += step;
-
-	cerr << " load is equal to " << ut->load << " step " << step << endl;
-}
-
 void Stats::handleMessage(cMessage *msg)
 {
 
@@ -217,26 +131,29 @@ void Stats::handleMessage(cMessage *msg)
 	 std:cerr << endl;
 	 }*/
 
-	cerr << "NOMBRE DE DELIVERY/NOEUD" << endl;
-	for (Node* n : nodes)
-		cerr << n->stat.nbDeliveries << "\t";
-	cerr << endl;
+	for (Node*n : nodes)
+		cerr << "node " << n->id << " pendingmsg " << n->pendingMsg.size() << " delivered " << n->delivered.size()
+				<< " receivedtime " << n->receivedTime.size() << "clock components " << n->clockManagment.clock.size()
+				<< " lcomponent " << n->clockManagment.nbLocalActiveComponents << " ccomponent "
+				<< n->clockManagment.clock.activeComponents << endl;
 
-	std::cerr << "pendingmsg size " << endl;
-	for (Node* n : nodes)
-	{
-		if (n->pendingMsg.size() > 500)
-			cerr << n->id << ":" << n->pendingMsg.size() << "\t";
-		else
-			cerr << n->pendingMsg.size() << "\t";
-	}
-	cerr << endl;
-
+//	cerr << "NOMBRE DE DELIVERY/NOEUD" << endl;
+//	for (Node* n : nodes)
+//		cerr << n->stat.nbDeliveries << "\t";
+//	cerr << endl;
+//
+//	std::cerr << "pendingmsg size " << endl;
+//	for (Node* n : nodes)
+//	{
+//		if (n->pendingMsg.size() > 500)
+//			cerr << n->id << ":" << n->pendingMsg.size() << "\t";
+//		else
+//			cerr << n->pendingMsg.size() << "\t";
+//	}
+//	cerr << endl;
 	WriteMessageLoad();
 	WriteClockSize();
 	WriteDeliveries();
-
-	loadHandler();
 
 	if (simTime() == 300)
 	{

@@ -78,7 +78,7 @@ void Node::sendAppMsg()
 	if (DeliveryControl == Delivery::DCS)
 		expandClockCheck();
 	seq++;
-	clockManagment.IncrementPC(ut->clockEntries[id]);
+	clockManagment.IncrementPC(ut->clockEntries[id], clockManagment.incrComponent);
 
 	stat.nbBroadcasts++;
 	stat.localActiveComponentsWhenBroadcast += clockManagment.nbLocalActiveComponents;
@@ -128,21 +128,12 @@ void Node::RecvAppMsg(AppMsg*m)
 
 bool Node::PC_test(unsigned int idMsg, const DCS &PCMsg, unsigned int PCMsgIncrComponent)
 {
-	if (PCMsg.size() > clockManagment.clock.size())
-	{ // adds a component to the clock
-		if (clockManagment.ackData.inAckRound)
-			return false; // does not expand clock during ackRound
-		clockManagment.expandClock();
+	if (clockManagment.ackData.inAckRound && PCMsg.size() > clockManagment.clock.size())
+	{
+		cerr << "node " << id << " returns false pctest because is in ackround" << endl;
+		return false;
 	}
-	else if (clockManagment.clock.activeComponents < PCMsg.size())
-	{ // checks whether needs to activate a component
-		if (!(PCMsg[clockManagment.clock.activeComponents].clock
-				<= clockManagment.clock[clockManagment.clock.activeComponents].clock))
-		{ // The message's component has an entry higher than the local one
-			cerr << "message component clock value is higher" << endl;
-			clockManagment.expandClock();
-		}
-	}
+	clockManagment.nbLocalActiveComponents = clockManagment.clock.prepareComparison(PCMsg);
 	return clockManagment.clock.satisfiesDeliveryConditions(PCMsg, { PCMsgIncrComponent }, ut->clockEntries[idMsg]);
 }
 
@@ -154,7 +145,7 @@ bool Node::deliverMsg(unsigned int idMsg, unsigned int seqMsg, DCS v, simtime_t 
 
 	dep d(idMsg, seqMsg, rcvTime, MsgIncrComponent, v);
 	delivered.push_back(d);
-	clockManagment.IncrementPC(ut->clockEntries[idMsg]);
+	clockManagment.IncrementPC(ut->clockEntries[idMsg], MsgIncrComponent);
 	return control->notifyDeliverMessage( { idMsg, seqMsg }, id);
 }
 
@@ -201,7 +192,7 @@ AckComponent* Node::createAckComponent()
 	AckComponent * m = new AckComponent();
 	m->setSourceId(id);
 	m->setComponent(clockManagment.clock[clockManagment.clock.activeComponents - 1].clock);
-	m->setComponentIndex(clockManagment.clock.activeComponents);
+	m->setComponentIndex(clockManagment.clock.activeComponents - 1);
 	return m;
 }
 
@@ -219,14 +210,23 @@ void Node::expandClockCheck()
 	if (!clockManagment.expandDecision(nbReceivedLastSecond()))
 		return;
 
-	if (clockManagment.nbLocalActiveComponents < clockManagment.clock.activeComponents) // a diminué le nombre de composants incr et l'ack n'a pas encore eu lieu
-		clockManagment.increaseLocalActiveComponents();
-	else
+	cerr << "node " << id << "increases its clock to active components " << clockManagment.clock.activeComponents
+			<< endl;
+
+	if (clockManagment.nbLocalActiveComponents == clockManagment.clock.size())
 	{
-		clockManagment.expandClock();
-		// To ensure that this node increments the newly added component such that other processes increment the number of active components
-		clockManagment.incrComponent = clockManagment.clock.activeComponents - 1;
+		clockManagment.clock.Add();
+		clockManagment.clock.ActivateComponent(clockManagment.clock.size() - 1);
+		clockManagment.clock.activeComponents++;
 	}
+	else if (clockManagment.nbLocalActiveComponents == clockManagment.clock.activeComponents)
+	{
+		clockManagment.clock.ActivateComponent(clockManagment.clock.size() - 1);
+		clockManagment.clock.activeComponents++;
+	}
+	clockManagment.increaseLocalActiveComponents();
+	// To ensure that this node increments the newly added component such that other processes increment the number of active components
+	clockManagment.incrComponent = clockManagment.clock.activeComponents - 1;
 }
 
 void Node::RecvAckComponent(AckComponent* m)
@@ -247,9 +247,11 @@ bool Node::componentUsefulToPendingMessage(unsigned int componentIndex, Probabil
 	{
 		if (pendm.PC.size() >= componentIndex)
 		{
-			if (!(component == pendm.PC[componentIndex - 1].clock))
+			if (!(component == pendm.PC[componentIndex].clock))
 				return true;
 		}
+		else
+			return true;
 	}
 	return false;
 }
@@ -295,7 +297,7 @@ void Node::RecvAckRoundDecision(AckRoundDecision* m)
 	if (m->getDecision())
 	{
 		cerr << "NODE " << id << " RecvDeleteComponent reply " << m->getComponentIndex() << endl;
-		if (clockManagment.clock.activeComponents == m->getComponentIndex())
+		if (clockManagment.clock.activeComponents == m->getComponentIndex() + 1)
 		{
 			if (clockManagment.nbLocalActiveComponents == clockManagment.clock.activeComponents)
 				clockManagment.nbLocalActiveComponents--;
@@ -303,7 +305,7 @@ void Node::RecvAckRoundDecision(AckRoundDecision* m)
 		}
 	}
 	else
-		clockManagment.incrComponent = rand() % clockManagment.clock.size();
+		clockManagment.incrComponent = rand() % clockManagment.nbLocalActiveComponents;
 	clockManagment.ackData.reset();
 	iterativeDelivery();
 }

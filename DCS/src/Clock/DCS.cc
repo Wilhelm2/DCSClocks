@@ -42,7 +42,10 @@ void DCS::incrementEntries(const vector<unsigned int>& S_incr, const vector<unsi
 		for (unsigned int i : entries)
 		{
 			if (ck >= clock.size())
-				throw "clock smaller than ck";
+			{
+				cerr << "clock smaller than ck" << endl;
+				exit(1);
+			}
 			clock[ck].clock[i]++;
 		}
 	}
@@ -51,7 +54,8 @@ void DCS::incrementEntries(const vector<unsigned int>& S_incr, const vector<unsi
 bool DCS::satisfiesDeliveryConditions(const DCS& compareClock, const vector<unsigned int>& S_incr,
 		const vector<unsigned int>& entries) const
 {
-	for (unsigned int i = 0; i < size(); i++)
+	assert(size() < compareClock.size());
+	for (unsigned int i = 0; i < compareClock.size(); i++)
 	{
 		if (std::find(S_incr.begin(), S_incr.end(), i) != S_incr.end())
 		{ // i\in S_incr
@@ -77,32 +81,26 @@ component DCS::getComponent(unsigned int k) const
 	return clock[k];
 }
 
-bool DCS::prepareComparison(DCS clockCompare)
+unsigned int DCS::prepareComparison(DCS clockCompare)
 {
-	bool activateComponents = false;
 	// Step 1
 	while (clock.size() < clockCompare.size())
-	{
-		activateComponents = true;
 		Add();
-		activeComponents = clock.size() - 1;
-	}
 
 	// Step 2
-	for (unsigned int i = 0; i < clock.size(); i++)
+	for (unsigned int i = 0; i < clockCompare.size(); i++)
 	{
-		if (!(clockCompare.clock[i].clock <= clock[i].clock))
+		if (!(clockCompare.clock[i].clock <= clock[i].clock) && !clock[i].active)
 		{
-			activateComponents = true;
 			ActivateComponent(i);
-			activeComponents = max(activeComponents, i);
+			activeComponents = max(activeComponents, i + 1);
 		}
 	}
 
 	// Ensures that activated components have lower ids than inactive ones
-	for (unsigned int i = 0; i <= activateComponents; i++)
+	for (unsigned int i = 0; i < activeComponents; i++)
 		ActivateComponent(i);
-	return activateComponents;
+	return activeComponents;
 }
 
 void DCS::Add()

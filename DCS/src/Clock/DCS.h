@@ -17,6 +17,7 @@
 #define DCS_H_
 
 #include <vector>
+#include <cassert>
 
 #include "ProbabilisticClock.h"
 
@@ -38,7 +39,7 @@ public:
 			const vector<unsigned int>& entries) const;
 	unsigned int size() const;
 	component getComponent(unsigned int k) const;
-	bool prepareComparison(DCS clockCompare);
+	unsigned int prepareComparison(DCS clockCompare);
 	void Add();
 	void ActivateComponent(unsigned int i);
 	void DeactivateComponent(unsigned int i);

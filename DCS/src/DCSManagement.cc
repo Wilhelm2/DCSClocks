@@ -52,8 +52,8 @@ bool DCSManagement::reduceDecision(unsigned int nbReceivedMessages)
 	if ((simTime() - lastExpand < 0.5) || (simTime() - lastReduce) < 0.5 || ackData.inAckRound
 			|| clock.activeComponents == 1)
 		return false;
-	if (simTime() > 49 && simTime() < 100)
-		return false; // POUR DES EXPÉRIENCES !!
+//	if (simTime() > 49 && simTime() < 100)
+//		return false; // POUR DES EXPÉRIENCES !!
 
 	if (nbReceivedMessages < 10 && clock[0].clock.size() * clock.activeComponents > 20)
 		return true;
@@ -91,10 +91,10 @@ void DCSManagement::increaseLocalActiveComponents()
 void DCSManagement::expandClock()
 {
 	increaseLocalActiveComponents();
-	clock.ActivateComponent(incrComponent);
 	clock.activeComponents++;
 	if (clock.activeComponents > clock.size())
 		clock.Add();
+	clock.ActivateComponent(clock.size() - 1);
 }
 
 void DCSManagement::reduceClock()
@@ -105,10 +105,10 @@ void DCSManagement::reduceClock()
 
 bool DCSManagement::acknowledgesComponentDeactivation(unsigned int componentIndex, ProbabilisticClock component)
 {
-	assert(componentIndex > clock.size() && "Requests to delete component not in local DCS!");
+	assert(componentIndex <= clock.size() && "Requests to delete component not in local DCS!");
 	bool reply = true;
 
-	if (incrComponent == componentIndex - 1)
+	if (incrComponent == componentIndex)
 	{
 		reply = false;
 		cerr << "Replies no because increments this component" << endl;
@@ -119,7 +119,7 @@ bool DCSManagement::acknowledgesComponentDeactivation(unsigned int componentInde
 		cerr << "Replies no because incremented the component less than 0.3s ago" << endl;
 	}
 
-	if (!(component == clock[componentIndex - 1].clock))
+	if (!(component == clock[componentIndex].clock))
 	{
 		reply = false;
 		cerr << "Replies no because components are not equal" << endl;
@@ -135,10 +135,10 @@ bool DCSManagement::acknowledgementDecision(unsigned int nbNodes)
 		return false;
 }
 
-void DCSManagement::IncrementPC(vector<unsigned int> clockEntries)
+void DCSManagement::IncrementPC(vector<unsigned int> clockEntries, unsigned int componentIndex)
 {
-	clock.incrementEntries( { incrComponent }, clockEntries);
-	if (incrComponent == clock.activeComponents - 1)
+	clock.incrementEntries( { componentIndex }, clockEntries);
+	if (componentIndex == clock.activeComponents - 1)
 		timeIncrLastComponent = simTime(); // keeps track of when incremented the last component
 }
 

@@ -20,6 +20,7 @@
 #include <random>
 #include <vector>
 #include <algorithm>
+#include <fstream>
 
 using namespace omnetpp;
 using namespace std;
@@ -34,17 +35,12 @@ class Utilitaries: public cSimpleModule
 {
 public:
 	virtual void initialize();
-	virtual void handleMessage(cMessage *msg)
-	{
-	}
-	;
-	int combinaisons(int p, int n);
-	vector<vector<int>> comb(int N, int K);
-	unsigned long long computeNbCombinaisons(int n, int k);
-	vector<vector<unsigned int>> EvenCombinations(int N, int k, int M);
+	virtual void handleMessage(cMessage *msg);
+	unsigned int computeNbIncrementedEntries();
+	vector<vector<unsigned int>> EvenCombinations(unsigned int N, unsigned int k, unsigned int M);
+	void readLoadFromFile();
 
 	vector<vector<unsigned int>> clockEntries;
-	int nbCombinaisons;
 
 	vector<int> channelRandNumber;
 	std::default_random_engine generator, generatorChannelDelay, generatorSendDistribution;
@@ -56,17 +52,13 @@ public:
 
 	std::normal_distribution<double>* sendDistribution = new std::normal_distribution<double>(0., 10000.);
 
-#define LOAD_MULTIPLIER 10
-	int LOAD_AMPLITUDE = 100;
 	double PEAKSPERDELAY;
 	unsigned int nbNodes;
 	unsigned int clockLength;
-	unsigned int load = 20;
-//    int baseload=20;
-	unsigned int targetload = 0;
-	map<int, vector<int>> m;
-	double delaySend; // en ms
 
+	vector<unsigned int> loadVector;
+	unsigned int indexLoad = 0;
+	cMessage loadTimer;
 };
 
 #endif
