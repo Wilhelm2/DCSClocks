@@ -23,6 +23,7 @@ DCS::DCS()
 DCS::DCS(unsigned int componentSize)
 {
 	this->componentSize = componentSize;
+	Add();
 }
 
 DCS::~DCS()

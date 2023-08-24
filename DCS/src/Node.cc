@@ -26,6 +26,7 @@ void Node::initialize()
 		scheduleAt(SimTime(1, SIMTIME_S), &clockManagment.componentSizeCheckTimer);
 	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DCS.ut"));
 	control = dynamic_cast<DeliveryController*>(getModuleByPath("DCS.control"));
+	clockManagment.clock = DCS(ut->clockLength);
 
 	setOutGate();
 	sendInitMessage();
@@ -89,7 +90,7 @@ void Node::sendAppMsg()
 
 	control->notifySendMessage(id, seq);
 	control->notifyDeliverMessage( { id, seq }, id);
-	assert(clockManagment.clock.activeComponents < clockManagment.incrComponent); // Verifies that does not increment an inactive component
+	assert(clockManagment.clock.activeComponents >= clockManagment.incrComponent); // Verifies that does not increment an inactive component
 	clearDelivered();
 }
 

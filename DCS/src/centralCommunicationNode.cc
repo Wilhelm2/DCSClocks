@@ -128,14 +128,14 @@ void CentralCommunicationNode::broadcastMessage(cMessage* m)
 			continue;
 		cMessage* copy = m->dup();
 		setTargetId(copy, i);
-		scheduleAt(SimTime(computeDelay(getSourceId(m), i), SIMTIME_US), m);
+		scheduleAt(simTime() + SimTime(computeDelay(getSourceId(m), i), SIMTIME_US), copy);
 	}
 	delete m;
 }
 
 unsigned int CentralCommunicationNode::computeDelay(unsigned int sourceId, unsigned int targetId)
 {
-	unsigned int delay;
+	double delay;
 	if ((ut->channelRandNumber[sourceId] + ut->channelRandNumber[targetId]) % 2 == 0)
 	{
 		delay = (*ut->distributionChannelDelayPair)(ut->generatorChannelDelay);
@@ -146,8 +146,12 @@ unsigned int CentralCommunicationNode::computeDelay(unsigned int sourceId, unsig
 		delay = (*ut->distributionChannelDelayImpair)(ut->generatorChannelDelay);
 		nbSendImpair++;
 	}
-	incrementDelayIntervals((int) (delay / 10000));
-	return max(delay, (unsigned int) 0);
+//	if (delay / 10000 > 40000)
+//		cerr << "sourceid " << sourceId << " targetid " << targetId << " ut " << ut << " delay " << delay << endl;
+//	cerr << (*ut->distributionChannelDelayPair)(ut->generatorChannelDelay) << endl;
+
+	incrementDelayIntervals((delay / 10000));
+	return max(delay, 0.);
 }
 
 void CentralCommunicationNode::handleAckRep(AckRep* m)

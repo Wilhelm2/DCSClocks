@@ -19,31 +19,27 @@ Define_Module(Stats);
 
 void Stats::initialize()
 {
-	char tmp[40];
 	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DCS.ut"));
+	control = dynamic_cast<DeliveryController*>(getModuleByPath("DCS.control"));
 	nextstep = ut->LOAD_AMPLITUDE;
 	step = 200 * 2 / ut->LOAD_AMPLITUDE;
 	for (unsigned int i = 0; i < ut->nbNodes; i++)
-	{
-		sprintf(tmp, "DCS.Nodes[%d]", i);
-		nodes.push_back(dynamic_cast<Node*>(getModuleByPath(tmp)));
-	}
-	control = dynamic_cast<DeliveryController*>(getModuleByPath("DCS.control"));
+		nodes.push_back(dynamic_cast<Node*>(getModuleByPath(("DCS.Nodes[" + to_string(i) + "]").c_str())));
 
 	scheduleAt(simTime() + *(new SimTime(1, SIMTIME_S)), new cMessage());
 
-	// calcul = ln(2)*R/X avec R taille de l'horloge et X nombre de messages concurrents
-	// X = nbMessagesPerSecond * channelDelay
+// calcul = ln(2)*R/X avec R taille de l'horloge et X nombre de messages concurrents
+// X = nbMessagesPerSecond * channelDelay
 	float channelDelay = CHANNELDELAY / 1000000;
 	std::cerr << "channelDelay " << channelDelay << endl;
 
-	aloneNumbers.open("data/aloneNumbers.dat", std::ios::out);
-	broadcastMessageTimeFile.open("data/broadcastMessageTimeFile.dat", std::ios::out);
-	messageLoadFile.open("data/messageLoadFile.dat", std::ios::out);
-	clockSizeFile.open("data/clockSizeFile.dat", std::ios::out);
-	deliveriesFile.open("data/deliveriesFile.dat", std::ios::out);
+	aloneNumbers.open("Graphs/data/aloneNumbers.dat", std::ios::out);
+	broadcastMessageTimeFile.open("Graphs/data/broadcastMessageTimeFile.dat", std::ios::out);
+	messageLoadFile.open("Graphs/data/messageLoadFile.dat", std::ios::out);
+	clockSizeFile.open("Graphs/data/clockSizeFile.dat", std::ios::out);
+	deliveriesFile.open("Graphs/data/deliveriesFile.dat", std::ios::out);
 
-	// test de la loi normale, que c'est bien distribué
+// test de la loi normale, que c'est bien distribué
 	/*int distribution[200];
 	 memset(distribution,0,sizeof(distribution));
 	 for(int i=0;i<100000;i++){
@@ -177,7 +173,7 @@ void Stats::loadHandler()
 	 }
 	 */
 
-	// load random
+// load random
 	if (fmod(simTime().dbl(), 10) == 0)
 	{
 
@@ -195,14 +191,13 @@ void Stats::loadHandler()
 			ut->targetload = rand() % 100 + 100;
 		else
 			ut->targetload = rand() % 50;
-
-		step = (ut->targetload - ut->load) / 10;
+		step = (((int) ut->targetload) - ((int) ut->load)) / 10;
 		cerr << "NEW TARGET LOAD FROM " << ut->load << " TO LOAD " << ut->targetload << endl;
 //        ut->load = (ut->targetload - ut->baseload) / 10;
 	}
 	ut->load += step;
 
-	cerr << " load is equal to " << ut->load << endl;
+	cerr << " load is equal to " << ut->load << " step " << step << endl;
 }
 
 void Stats::handleMessage(cMessage *msg)

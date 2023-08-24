@@ -58,7 +58,7 @@ protected:
 
 	unsigned int nbSendPair = 0;
 	unsigned int nbSendImpair = 0;
-	unsigned int delayIntervals[200];
+	unsigned int delayIntervals[500];
 
 	unsigned int nodeToBroadcast = 0; // id of next node that will broadcast a message
 	cMessage broadcastTimer; // cMessage pour déterminer quand va broadcast le prochain message
