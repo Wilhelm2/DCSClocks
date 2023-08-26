@@ -9,6 +9,18 @@ Loading NED files from /home/wilhelm/Documents/codeGitHub/DCSClocks/DCS/simulati
 Loading NED files from /home/wilhelm/Documents/omnetpp-5.5.1/samples/inet/src:  726
 
 Preparing for running configuration General, run #0...
-Assigned runID=General-0-20230824-23:50:23-15187
+Assigned runID=General-0-20230826-14:07:38-4568
 Setting up network "dcs.DCS"...
 Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 1e-05s (0m 00s)  0% completed  (0% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 1001   present: 1001   in FES: 2004
+** Event #323203   t=7.966586666673   Elapsed: 1.24471s (0m 01s)  0% completed  (0% total)
+     Speed:     ev/sec=259664   simsec/sec=6.40041   ev/simsec=40569.8
+     Messages:  created: 161161   present: 2487   in FES: 3490
+
+<!> SIGINT or SIGTERM received, exiting -- at t=7.966586666673s, event #323203
+
+Calling finish() at end of Run #0...

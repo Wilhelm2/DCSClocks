@@ -50,7 +50,7 @@ unsigned int Utilitaries::computeNbIncrementedEntries()
 
 void Utilitaries::readLoadFromFile()
 {
-	std::ifstream myfile("loadFile.txt");
+	std::ifstream myfile("simulations/loadFile.txt");
 	std::string myline;
 	std::getline(myfile, myline);
 	unsigned int t = 0;

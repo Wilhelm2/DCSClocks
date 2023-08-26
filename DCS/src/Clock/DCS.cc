@@ -54,7 +54,7 @@ void DCS::incrementEntries(const vector<unsigned int>& S_incr, const vector<unsi
 bool DCS::satisfiesDeliveryConditions(const DCS& compareClock, const vector<unsigned int>& S_incr,
 		const vector<unsigned int>& entries) const
 {
-	assert(size() < compareClock.size());
+	assert(size() >= compareClock.size());
 	for (unsigned int i = 0; i < compareClock.size(); i++)
 	{
 		if (std::find(S_incr.begin(), S_incr.end(), i) != S_incr.end())

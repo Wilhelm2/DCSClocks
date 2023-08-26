@@ -277,6 +277,7 @@ void Node::RecvAckRep(AckRep* m)
 				<< endl;
 		send(createDeleteComponent(clockManagment.acknowledgementDecision(ut->nbNodes), id, m->getComponentIndex()),
 				outGate);
+		clockManagment.ackData.reset();
 	}
 	else
 		cerr << "NODE " << id << " recv ackPositifs: " << clockManagment.ackData.positiveAck << ", ackNegatifs: "
