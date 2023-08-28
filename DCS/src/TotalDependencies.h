@@ -17,17 +17,20 @@
 #define TOTALDEPENDENCIES_H_
 
 #include <vector>
-#include "Utilitaries.h"
+
+#include "structures.h"
+#include "SimulationParameters.h"
 
 using namespace std;
 
+// Represents the causal dependencies of messages
 class TotalDependencies
 {
 public:
 	TotalDependencies();
 	TotalDependencies(vector<unsigned int> dependencies);
 	TotalDependencies(unsigned int size);
-	virtual ~TotalDependencies();
+	virtual ~TotalDependencies() = default;
 
 	unsigned int& operator[](unsigned int i);
 	bool operator==(TotalDependencies compareDep);

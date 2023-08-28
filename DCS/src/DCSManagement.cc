@@ -15,34 +15,27 @@
 
 #include "DCSManagement.h"
 
-DCSManagement::DCSManagement()
-{
-}
-
-DCSManagement::~DCSManagement()
-{
-}
-
 bool DCSManagement::expandDecision(unsigned int nbReceivedMessages)
 {
 	if ((simTime() - lastExpand < 0.5) || (simTime() - lastReduce) < 0.5 || ackData.inAckRound)
 		return false;
 
-	if (nbReceivedMessages > 10 && clock[0].clock.size() * clock.activeComponents < 20)
+	unsigned int clockSize = clock[0].clock.size() * clock.activeComponents;
+	if (nbReceivedMessages > 10 && clockSize < 20)
 		return true;
-	if (nbReceivedMessages > 25 && clock[0].clock.size() * clock.activeComponents < 50)
+	if (nbReceivedMessages > 25 && clockSize < 50)
 		return true;
-	if (nbReceivedMessages > 33 && clock[0].clock.size() * clock.activeComponents < 100)
+	if (nbReceivedMessages > 33 && clockSize < 100)
 		return true;
-	if (nbReceivedMessages > 45 && clock[0].clock.size() * clock.activeComponents < 150)
+	if (nbReceivedMessages > 45 && clockSize < 150)
 		return true;
-	if (nbReceivedMessages > 53 && clock[0].clock.size() * clock.activeComponents < 200)
+	if (nbReceivedMessages > 53 && clockSize < 200)
 		return true;
-	if (nbReceivedMessages > 65 && clock[0].clock.size() * clock.activeComponents < 300)
+	if (nbReceivedMessages > 65 && clockSize < 300)
 		return true;
-	if (nbReceivedMessages > 75 && clock[0].clock.size() * clock.activeComponents < 400)
+	if (nbReceivedMessages > 75 && clockSize < 400)
 		return true;
-	if (nbReceivedMessages > 80 && clock[0].clock.size() * clock.activeComponents < 500)
+	if (nbReceivedMessages > 80 && clockSize < 500)
 		return true;
 	return false;
 }
@@ -52,49 +45,65 @@ bool DCSManagement::reduceDecision(unsigned int nbReceivedMessages)
 	if ((simTime() - lastExpand < 0.5) || (simTime() - lastReduce) < 0.5 || ackData.inAckRound
 			|| clock.activeComponents == 1)
 		return false;
-//	if (simTime() > 49 && simTime() < 100)
-//		return false; // POUR DES EXPÉRIENCES !!
 
-	if (nbReceivedMessages < 10 && clock[0].clock.size() * clock.activeComponents > 20)
+	unsigned int clockSize = clock[0].clock.size() * clock.activeComponents;
+	if (nbReceivedMessages < 10 && clockSize > 20)
 		return true;
-	if (nbReceivedMessages < 22 && clock[0].clock.size() * clock.activeComponents > 50)
+	if (nbReceivedMessages < 22 && clockSize > 50)
 		return true;
-	if (nbReceivedMessages < 33 && clock[0].clock.size() * clock.activeComponents > 100)
+	if (nbReceivedMessages < 33 && clockSize > 100)
 		return true;
-	if (nbReceivedMessages < 40 && clock[0].clock.size() * clock.activeComponents > 150)
+	if (nbReceivedMessages < 40 && clockSize > 150)
 		return true;
-	if (nbReceivedMessages < 45 && clock[0].clock.size() * clock.activeComponents > 200)
+	if (nbReceivedMessages < 45 && clockSize > 200)
 		return true;
-	if (nbReceivedMessages < 65 && clock[0].clock.size() * clock.activeComponents > 300)
+	if (nbReceivedMessages < 65 && clockSize > 300)
 		return true;
-	if (nbReceivedMessages < 75 && clock[0].clock.size() * clock.activeComponents > 400)
+	if (nbReceivedMessages < 75 && clockSize > 400)
 		return true;
-	if (nbReceivedMessages < 80 && clock[0].clock.size() * clock.activeComponents > 500)
+	if (nbReceivedMessages < 80 && clockSize > 500)
 		return true;
 	return false;
 }
 
-void DCSManagement::reduceLocalActiveComponents()
+void DCSManagement::reduceLocalActiveComponents(unsigned int nodeId)
 {
 	nbLocalActiveComponents = clock.activeComponents - 1;
-	incrComponent = rand() % nbLocalActiveComponents;
+	reaffectIncrementedComponent(nodeId);
 	lastReduce = simTime();
 }
 
-void DCSManagement::increaseLocalActiveComponents()
+void DCSManagement::increaseLocalActiveComponents(unsigned int nodeId)
 {
 	nbLocalActiveComponents++;
-	incrComponent = rand() % nbLocalActiveComponents;
+	reaffectIncrementedComponent(nodeId);
+	cerr << "chose component " << incrComponent << endl;
 	lastExpand = simTime();
 }
 
-void DCSManagement::expandClock()
+void DCSManagement::reaffectIncrementedComponent(unsigned int nodeId)
 {
-	increaseLocalActiveComponents();
-	clock.activeComponents++;
-	if (clock.activeComponents > clock.size())
+//	incrComponent = rand() % nbLocalActiveComponents;
+	incrComponent = nodeId % nbLocalActiveComponents;
+}
+
+void DCSManagement::expandClock(unsigned int nodeId)
+{
+	cerr << "Node " << nodeId << "increases active components to " << clock.activeComponents << endl;
+	if (nbLocalActiveComponents == clock.size())
+	{
 		clock.Add();
-	clock.ActivateComponent(clock.size() - 1);
+		clock.ActivateComponent(clock.size() - 1);
+		clock.activeComponents++;
+	}
+	else if (nbLocalActiveComponents == clock.activeComponents)
+	{
+		clock.ActivateComponent(clock.size() - 1);
+		clock.activeComponents++;
+	}
+	increaseLocalActiveComponents(nodeId);
+	// To ensure that this node increments the newly added component such that other processes increment the number of active components
+	//clockManagment.incrComponent = clockManagment.clock.activeComponents - 1;
 }
 
 void DCSManagement::reduceClock()
@@ -103,7 +112,7 @@ void DCSManagement::reduceClock()
 	clock.DeactivateComponent(clock.activeComponents);
 }
 
-bool DCSManagement::acknowledgesComponentDeactivation(unsigned int componentIndex, ProbabilisticClock component)
+bool DCSManagement::acknowledgesComponentDeactivation(unsigned int componentIndex, const ProbabilisticClock& component)
 {
 	assert(componentIndex <= clock.size() && "Requests to delete component not in local DCS!");
 	bool reply = true;
@@ -135,10 +144,35 @@ bool DCSManagement::acknowledgementDecision(unsigned int nbNodes)
 		return false;
 }
 
+void DCSManagement::prepareComparison(const DCS& PCMsg, unsigned int idReceiver)
+{
+	unsigned int newLocalActiveComponents = clock.prepareComparison(PCMsg);
+	bool hasActivatedComponents = newLocalActiveComponents != nbLocalActiveComponents;
+	nbLocalActiveComponents = newLocalActiveComponents;
+	if (hasActivatedComponents)
+		reaffectIncrementedComponent(idReceiver);
+}
+
 void DCSManagement::IncrementPC(vector<unsigned int> clockEntries, unsigned int componentIndex)
 {
 	clock.incrementEntries( { componentIndex }, clockEntries);
 	if (componentIndex == clock.activeComponents - 1)
 		timeIncrLastComponent = simTime(); // keeps track of when incremented the last component
+}
+
+void DCSManagement::getAckRoundDecision(bool decision, unsigned int componentIndex, unsigned int nodeId)
+{
+	if (decision)
+	{
+		cerr << "Node " << nodeId << " RecvDeleteComponent reply " << componentIndex << endl;
+		if (clock.activeComponents == componentIndex + 1)
+		{
+			if (nbLocalActiveComponents == clock.activeComponents)
+				nbLocalActiveComponents--;
+			clock.activeComponents--;
+		}
+	}
+	reaffectIncrementedComponent(nodeId);
+	ackData.reset();
 }
 

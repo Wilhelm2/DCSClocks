@@ -26,10 +26,6 @@ DCS::DCS(unsigned int componentSize)
 	Add();
 }
 
-DCS::~DCS()
-{
-}
-
 component DCS::operator[](unsigned int i) const
 {
 	return clock[i];
@@ -81,7 +77,7 @@ component DCS::getComponent(unsigned int k) const
 	return clock[k];
 }
 
-unsigned int DCS::prepareComparison(DCS clockCompare)
+unsigned int DCS::prepareComparison(const DCS& clockCompare)
 {
 	// Step 1
 	while (clock.size() < clockCompare.size())

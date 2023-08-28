@@ -15,11 +15,8 @@
 
 package dcs;
 
-simple Utilitaries
+simple SimulationParameters
 {
 	int nbNodes ;
-	double PEAKSPERDELAY;
     int clockLength;
-	double delaySend;
-    
 }

@@ -35,9 +35,9 @@ OBJS = \
     $O/DCSManagement.o \
     $O/DeliveryController.o \
     $O/Node.o \
+    $O/SimulationParameters.o \
     $O/Stats.o \
     $O/TotalDependencies.o \
-    $O/Utilitaries.o \
     $O/Clock/DCS.o \
     $O/Clock/ProbabilisticClock.o \
     $O/Messages/AckComponent_m.o \

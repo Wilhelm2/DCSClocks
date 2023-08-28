@@ -13,16 +13,15 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 //
 
-#include "Utilitaries.h"
+#include "SimulationParameters.h"
 
-Define_Module(Utilitaries);
+Define_Module(SimulationParameters);
 
-void Utilitaries::initialize()
+void SimulationParameters::initialize()
 {
 	cSimpleModule::initialize();
 	nbNodes = par("nbNodes");
 	clockLength = par("clockLength");
-	PEAKSPERDELAY = par("PEAKSPERDELAY");
 
 	for (unsigned int i = 0; i < nbNodes; i++)
 		channelRandNumber.push_back(rand() % 2);
@@ -32,23 +31,23 @@ void Utilitaries::initialize()
 	scheduleAt(simTime() + SimTime(1, SIMTIME_S), &loadTimer);
 }
 
-void Utilitaries::handleMessage(cMessage *msg)
+void SimulationParameters::handleMessage(cMessage *msg)
 {
 	indexLoad++;
 	scheduleAt(simTime() + SimTime(1, SIMTIME_S), &loadTimer);
 }
 
-unsigned int Utilitaries::computeNbIncrementedEntries()
+unsigned int SimulationParameters::computeNbIncrementedEntries()
 {
-	//	float messagesPerSecond = 1000. * nbNodes / delaySend; // 1000 vient du fait que delaySend == 5000 et pas 5
+	//	float messagesPerSecond = 1000. * nbNodes / delaySend; // 1000 because delaySend is in ms (so /1000)
 	//	float channelDelay = CHANNELDELAY / 1000000;
-	//    int k = min(4.,ceil(std::log1p(1)*clockLength/(messagesPerSecond*channelDelay))); // limite à x sinon l'ensemble des possibilités calculés dans comb sera trop grand
+	//    int k = ceil(std::log1p(1)*clockLength/(messagesPerSecond*channelDelay));
 	unsigned int k = 2;
 	std::cerr << "Number of entries to increment " << k << endl;
 	return k;
 }
 
-void Utilitaries::readLoadFromFile()
+void SimulationParameters::readLoadFromFile()
 {
 	std::ifstream myfile("simulations/loadFile.txt");
 	std::string myline;
@@ -64,7 +63,7 @@ void Utilitaries::readLoadFromFile()
 }
 
 // N = nbNodes, k = nb entries to increment when broadcasting a message, M = size of clock
-vector<vector<unsigned int>> Utilitaries::EvenCombinations(unsigned int N, unsigned int k, unsigned int M)
+vector<vector<unsigned int>> SimulationParameters::EvenCombinations(unsigned int N, unsigned int k, unsigned int M)
 {
 	unsigned int nbIncrements = N * k / M + 1; // number of times that each entry should be affected at maximum to a process (added +1 so that if nbIncrements = x.y then will not block)
 	vector<unsigned int> vectorIncr;

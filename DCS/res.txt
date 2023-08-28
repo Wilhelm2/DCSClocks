@@ -9,18 +9,21 @@ Loading NED files from /home/wilhelm/Documents/codeGitHub/DCSClocks/DCS/simulati
 Loading NED files from /home/wilhelm/Documents/omnetpp-5.5.1/samples/inet/src:  726
 
 Preparing for running configuration General, run #0...
-Assigned runID=General-0-20230826-14:07:38-4568
+Assigned runID=General-0-20230828-03:16:05-14168
 Setting up network "dcs.DCS"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 1e-05s (0m 00s)  0% completed  (0% total)
+** Event #0   t=0   Elapsed: 1.3e-05s (0m 00s)  0% completed  (0% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
-     Messages:  created: 1001   present: 1001   in FES: 2004
-** Event #323203   t=7.966586666673   Elapsed: 1.24471s (0m 01s)  0% completed  (0% total)
-     Speed:     ev/sec=259664   simsec/sec=6.40041   ev/simsec=40569.8
-     Messages:  created: 161161   present: 2487   in FES: 3490
+     Messages:  created: 1000   present: 1000   in FES: 2004
+** Event #642304   t=84.284149999997   Elapsed: 2.00082s (0m 02s)  8% completed  (8% total)
+     Speed:     ev/sec=321023   simsec/sec=42.1251   ev/simsec=7620.71
+     Messages:  created: 281280   present: 1572   in FES: 2575
+** Event #805050   t=88.903089684214   Elapsed: 2.55385s (0m 02s)  8% completed  (8% total)
+     Speed:     ev/sec=294279   simsec/sec=8.35206   ev/simsec=35234.3
+     Messages:  created: 361360   present: 2243   in FES: 3247
 
-<!> SIGINT or SIGTERM received, exiting -- at t=7.966586666673s, event #323203
+<!> SIGINT or SIGTERM received, exiting -- at t=88.903089684214s, event #805050
 
 Calling finish() at end of Run #0...

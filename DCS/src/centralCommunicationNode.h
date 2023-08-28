@@ -27,20 +27,22 @@
 #include "Messages/AckRep_m.h"
 #include "Messages/AckRoundDecision_m.h"
 #include "Messages/broadcastNotify_m.h"
-//#include "depReq_m.h"
-//#include "depRsp_m.h"
 #include "Messages/Init_m.h"
 #include "DeliveryController.h"
-#include "Utilitaries.h"
+#include "SimulationParameters.h"
 
 using namespace omnetpp;
 using namespace std;
 
+// Node that is in charge of the communication between nodes.
+// Nodes send messages to the centralCommunicationNode which determines the communication delays for each message and sends it to the right destination(s).
+// Finally, this node also determines which node has to broadcast a message and when.
 class CentralCommunicationNode: public cSimpleModule
 {
 protected:
 	virtual void initialize();
 	virtual void handleMessage(cMessage *msg);
+	// Informs the next node to broadcast a message
 	void handleBroadcastNotify();
 	void handleInit(Init* m);
 	void broadcastMessage(cMessage* m);
@@ -52,17 +54,23 @@ protected:
 	void incrementDelayIntervals(unsigned int entry);
 	void handleAckRep(AckRep* m);
 
-	Utilitaries* ut;
+	// Reference to the simulation parameters
+	SimulationParameters* ut;
 
+	// Vector containing the gates to communicate with the other nodes. gateToTarget[i] contains the gate to communicate with Nodes[i]
 	vector<cGate*> gateToTarget;
 
+	// Number of messages sent on pair channels
 	unsigned int nbSendPair = 0;
+	// Number of messages sent on unpair channlels
 	unsigned int nbSendImpair = 0;
+	// Saves the communication delays
 	unsigned int delayIntervals[500];
 
-	unsigned int nodeToBroadcast = 0; // id of next node that will broadcast a message
-	cMessage broadcastTimer; // cMessage pour déterminer quand va broadcast le prochain message
-
+	// id of next node that will broadcast a message
+	unsigned int nextBroadcastNode = 0;
+	// Timer to schedule the next broadcast
+	cMessage broadcastTimer;
 };
 
 #endif

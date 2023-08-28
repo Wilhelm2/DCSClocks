@@ -19,7 +19,7 @@ Define_Module(CentralCommunicationNode);
 
 void CentralCommunicationNode::initialize()
 {
-	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DCS.ut"));
+	ut = dynamic_cast<SimulationParameters*>(getModuleByPath("DCS.ut"));
 	memset(delayIntervals, 0, sizeof(delayIntervals));
 	gateToTarget.resize(ut->nbNodes);
 
@@ -107,8 +107,8 @@ void CentralCommunicationNode::setTargetId(cMessage* msg, unsigned int targetId)
 void CentralCommunicationNode::handleBroadcastNotify()
 {
 //	cout << "Order node " << nodeToBroadcast << " to broadcast a message " << endl;
-	send(new BroadcastNotify(), gateToTarget[nodeToBroadcast]);
-	nodeToBroadcast = (nodeToBroadcast + 1) % ut->nbNodes;
+	send(new BroadcastNotify(), gateToTarget[nextBroadcastNode]);
+	nextBroadcastNode = (nextBroadcastNode + 1) % ut->nbNodes;
 	scheduleAt(simTime() + 1. / (ut->loadVector[ut->indexLoad] + 1), &broadcastTimer);
 }
 
@@ -146,10 +146,6 @@ unsigned int CentralCommunicationNode::computeDelay(unsigned int sourceId, unsig
 		delay = (*ut->distributionChannelDelayImpair)(ut->generatorChannelDelay);
 		nbSendImpair++;
 	}
-//	if (delay / 10000 > 40000)
-//		cerr << "sourceid " << sourceId << " targetid " << targetId << " ut " << ut << " delay " << delay << endl;
-//	cerr << (*ut->distributionChannelDelayPair)(ut->generatorChannelDelay) << endl;
-
 	incrementDelayIntervals((delay / 10000));
 	return max(delay, 0.);
 }

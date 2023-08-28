@@ -24,13 +24,12 @@ void Node::initialize()
 	cSimpleModule::initialize();
 	if (DeliveryControl == Delivery::DCS)
 		scheduleAt(SimTime(1, SIMTIME_S), &clockManagment.componentSizeCheckTimer);
-	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DCS.ut"));
+	ut = dynamic_cast<SimulationParameters*>(getModuleByPath("DCS.ut"));
 	control = dynamic_cast<DeliveryController*>(getModuleByPath("DCS.control"));
 	clockManagment.clock = DCS(ut->clockLength);
 
 	setOutGate();
 	sendInitMessage();
-	DEBUGRECEPTIONTIME.open("data/DEBUGRECEPTIONTIME.dat", std::ios::out);
 }
 
 void Node::setOutGate()
@@ -76,17 +75,19 @@ void Node::handleMessage(cMessage *msg)
 void Node::sendAppMsg()
 {
 	if (DeliveryControl == Delivery::DCS)
-		expandClockCheck();
+	{
+		if (clockManagment.expandDecision(nbReceivedLastSecond()))
+			clockManagment.expandClock(id);
+	}
+
 	seq++;
 	clockManagment.IncrementPC(ut->clockEntries[id], clockManagment.incrComponent);
+	delivered.push_back(dep(id, seq, simTime(), clockManagment.incrComponent, clockManagment.clock));
+	send(createAppMsg(), outGate);
 
 	stat.nbBroadcasts++;
 	stat.localActiveComponentsWhenBroadcast += clockManagment.nbLocalActiveComponents;
 	stat.controlDataSize += clockManagment.clock.activeComponents * sizeof(ut->clockLength) * sizeof(unsigned int);
-
-	dep d(id, seq, simTime(), clockManagment.incrComponent, clockManagment.clock);
-	delivered.push_back(d);
-	send(createAppMsg(), outGate);
 
 	control->notifySendMessage(id, seq);
 	control->notifyDeliverMessage( { id, seq }, id);
@@ -112,39 +113,32 @@ void Node::RecvAppMsg(AppMsg*m)
 		deliverMsg(m->getSourceId(), m->getSeq(), m->getPC(), simTime(), m->getIncrComponent());
 	else if (DeliveryControl == Delivery::PCcomparision || DeliveryControl == Delivery::DCS)
 	{
-
 		if (PC_test(m->getSourceId(), m->getPC(), m->getIncrComponent()))
 		{
 			deliverMsg(m->getSourceId(), m->getSeq(), m->getPC(), simTime(), m->getIncrComponent());
 			iterativeDelivery();
 		}
 		else
-		{
-			dep d(m->getSourceId(), m->getSeq(), simTime(), m->getIncrComponent(), m->getPC());
-			pendingMsg.push_back(d);
-		}
+			pendingMsg.push_back(dep(m->getSourceId(), m->getSeq(), simTime(), m->getIncrComponent(), m->getPC()));
 	}
 }
 
 bool Node::PC_test(unsigned int idMsg, const DCS &PCMsg, unsigned int PCMsgIncrComponent)
 {
 	if (clockManagment.ackData.inAckRound && PCMsg.size() > clockManagment.clock.size())
-	{
-		cerr << "node " << id << " returns false pctest because is in ackround" << endl;
 		return false;
-	}
-	clockManagment.nbLocalActiveComponents = clockManagment.clock.prepareComparison(PCMsg);
+	clockManagment.prepareComparison(PCMsg, id);
 	return clockManagment.clock.satisfiesDeliveryConditions(PCMsg, { PCMsgIncrComponent }, ut->clockEntries[idMsg]);
 }
 
-bool Node::deliverMsg(unsigned int idMsg, unsigned int seqMsg, DCS v, simtime_t rcvTime, unsigned int MsgIncrComponent)
+bool Node::deliverMsg(unsigned int idMsg, unsigned int seqMsg, DCS msgClock, simtime_t rcvTime,
+		unsigned int MsgIncrComponent)
 {
 	stat.nbDeliveries++;
 	if (!control->canCausallyDeliverMessage( { idMsg, seqMsg }, id))
 		stat.falseDeliveredMsg++;
 
-	dep d(idMsg, seqMsg, rcvTime, MsgIncrComponent, v);
-	delivered.push_back(d);
+	delivered.push_back(dep(idMsg, seqMsg, rcvTime, MsgIncrComponent, msgClock));
 	clockManagment.IncrementPC(ut->clockEntries[idMsg], MsgIncrComponent);
 	return control->notifyDeliverMessage( { idMsg, seqMsg }, id);
 }
@@ -158,10 +152,10 @@ void Node::iterativeDelivery()
 		for (vector<dep>::iterator it = pendingMsg.begin(); it != pendingMsg.end();
 		/*fait dans la boucle à cause du erase*/)
 		{
-			if (PC_test(it->id, it->PC, it->incrComponent))
+			if (PC_test(it->id.id, it->PC, it->incrComponent))
 			{
 				hasDeliveredMessage = true;
-				deliverMsg(it->id, it->seq, it->PC, it->recvtime, it->incrComponent);
+				deliverMsg(it->id.id, it->id.seq, it->PC, it->recvtime, it->incrComponent);
 				it = pendingMsg.erase(it);
 			}
 			else
@@ -182,7 +176,7 @@ void Node::PeriodicComponentCheck()
 			cerr << "Observed load : " << nbReceivedLastSecond() << endl;
 			clockManagment.ackData.beginAckRound();
 		}
-		clockManagment.reduceLocalActiveComponents();
+		clockManagment.reduceLocalActiveComponents(id);
 	}
 	scheduleAt(simTime() + SimTime(1, SIMTIME_S), &clockManagment.componentSizeCheckTimer);
 }
@@ -205,30 +199,6 @@ unsigned int Node::nbReceivedLastSecond()
 	return receivedTime.size();
 }
 
-void Node::expandClockCheck()
-{
-	if (!clockManagment.expandDecision(nbReceivedLastSecond()))
-		return;
-
-	cerr << "node " << id << "increases its clock to active components " << clockManagment.clock.activeComponents
-			<< endl;
-
-	if (clockManagment.nbLocalActiveComponents == clockManagment.clock.size())
-	{
-		clockManagment.clock.Add();
-		clockManagment.clock.ActivateComponent(clockManagment.clock.size() - 1);
-		clockManagment.clock.activeComponents++;
-	}
-	else if (clockManagment.nbLocalActiveComponents == clockManagment.clock.activeComponents)
-	{
-		clockManagment.clock.ActivateComponent(clockManagment.clock.size() - 1);
-		clockManagment.clock.activeComponents++;
-	}
-	clockManagment.increaseLocalActiveComponents();
-	// To ensure that this node increments the newly added component such that other processes increment the number of active components
-	clockManagment.incrComponent = clockManagment.clock.activeComponents - 1;
-}
-
 void Node::RecvAckComponent(AckComponent* m)
 {
 	bool reply = clockManagment.acknowledgesComponentDeactivation(m->getComponentIndex(), m->getComponent());
@@ -241,7 +211,7 @@ void Node::RecvAckComponent(AckComponent* m)
 	send(createAckRep(reply, m->getSourceId(), m->getComponentIndex()), outGate);
 }
 
-bool Node::componentUsefulToPendingMessage(unsigned int componentIndex, ProbabilisticClock component)
+bool Node::componentUsefulToPendingMessage(unsigned int componentIndex, const ProbabilisticClock& component)
 {
 	for (const dep& pendm : pendingMsg)
 	{
@@ -271,17 +241,14 @@ void Node::RecvAckRep(AckRep* m)
 	clockManagment.ackData.getReply(m->getAck());
 	if (clockManagment.ackData.gotReplies() == ut->nbNodes)
 	{
-		if (clockManagment.ackData.positiveAck == ut->nbNodes)
-			clockManagment.reduceClock();
-		cerr << "NODE " << id << " Send deleteCompoenent " << clockManagment.acknowledgementDecision(ut->nbNodes)
-				<< endl;
-		send(createDeleteComponent(clockManagment.acknowledgementDecision(ut->nbNodes), id, m->getComponentIndex()),
-				outGate);
-		clockManagment.ackData.reset();
-	}
-	else
 		cerr << "NODE " << id << " recv ackPositifs: " << clockManagment.ackData.positiveAck << ", ackNegatifs: "
 				<< clockManagment.ackData.negativeAck << endl;
+		send(createDeleteComponent(clockManagment.acknowledgementDecision(ut->nbNodes), id, m->getComponentIndex()),
+				outGate);
+		if (clockManagment.ackData.positiveAck == ut->nbNodes)
+			clockManagment.reduceClock();
+		clockManagment.ackData.reset();
+	}
 }
 
 AckRoundDecision* Node::createDeleteComponent(bool decision, unsigned int sourceId, unsigned int componentIndex)
@@ -295,19 +262,7 @@ AckRoundDecision* Node::createDeleteComponent(bool decision, unsigned int source
 
 void Node::RecvAckRoundDecision(AckRoundDecision* m)
 {
-	if (m->getDecision())
-	{
-		cerr << "NODE " << id << " RecvDeleteComponent reply " << m->getComponentIndex() << endl;
-		if (clockManagment.clock.activeComponents == m->getComponentIndex() + 1)
-		{
-			if (clockManagment.nbLocalActiveComponents == clockManagment.clock.activeComponents)
-				clockManagment.nbLocalActiveComponents--;
-			clockManagment.clock.activeComponents--;
-		}
-	}
-	else
-		clockManagment.incrComponent = rand() % clockManagment.nbLocalActiveComponents;
-	clockManagment.ackData.reset();
+	clockManagment.getAckRoundDecision(m->getDecision(), m->getComponentIndex(), id);
 	iterativeDelivery();
 }
 

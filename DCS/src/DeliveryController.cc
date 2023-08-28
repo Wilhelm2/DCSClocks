@@ -15,23 +15,14 @@
 
 #include "DeliveryController.h"
 
-DeliveryController::DeliveryController()
-{
-}
-
-DeliveryController::~DeliveryController()
-{
-}
-
 void DeliveryController::initialize(int stage)
 {
 	cSimpleModule::initialize(stage);
-	params = dynamic_cast<Utilitaries*>(getModuleByPath("DCS.ut"));
+	params = dynamic_cast<SimulationParameters*>(getModuleByPath("DCS.ut"));
 	processDependencies.resize(params->nbNodes);
 	for (vector<TotalDependencies>::iterator it = processDependencies.begin(); it != processDependencies.end(); it++)
 		*it = TotalDependencies(params->nbNodes);
 	processBroadcastedMessages.resize(params->nbNodes);
-	//testModule();
 }
 
 void DeliveryController::notifySendMessage(unsigned int idSender, unsigned int seq)
@@ -44,22 +35,22 @@ void DeliveryController::notifySendMessage(unsigned int idSender, unsigned int s
 	t.sendTime = simTime();
 	t.deliveredAtTime.assign(params->nbNodes, 0);
 	processBroadcastedMessages[idSender].push_back(t);
-//    std::cout << "BROADCASTDeliveryController: MSG ADDED from " << idSrc <<" seq " << t->seq << " || "; printclock(t->clock);
+//    std::cout << "DeliveryController: MSG ADDED from " << idSrc <<" seq " << t->seq << " || "; printclock(t->clock);
 }
 
 vector<msg>::iterator DeliveryController::searchMessage(idMsg idM)
 {
-	if (processBroadcastedMessages.size() < idM.id)
-		throw "Source process not contained in processBroadcastedMessages";
-
-	for (vector<msg>::iterator it = processBroadcastedMessages[idM.id].begin();
-			it != processBroadcastedMessages[idM.id].end(); ++it)
+	if (processBroadcastedMessages.size() > idM.id)
 	{
-		//std::cout << "msg with seq " << (*it)->seq << endl;
-		if (it->seq == idM.seq)
-			return it;
+		for (vector<msg>::iterator it = processBroadcastedMessages[idM.id].begin();
+				it != processBroadcastedMessages[idM.id].end(); ++it)
+		{
+			if (it->seq == idM.seq)
+				return it;
+		}
 	}
-	throw "Message not contained in vector of sent messages of process";
+	cerr << "Message " << idM.id << "," << idM.seq << " not registered" << endl;
+	exit(1);
 }
 
 bool DeliveryController::notifyDeliverMessage(idMsg idM, unsigned int idDest)
@@ -71,17 +62,11 @@ bool DeliveryController::notifyDeliverMessage(idMsg idM, unsigned int idDest)
 	{
 //        printDeliveryError("Out of causal order delivery", idM, idDest, m.dependencies, processDependencies[idDest]);
 		for (unsigned int i = 0; i < params->nbNodes; i++)
-		{
-//            if( ( (m.dependencies[i]>processDependencies[idDest][i]) && (i!=idM.id) ) || ( (m.dependencies[i]>(processDependencies[idDest][i]+1)) && (i==idM.id) ) )
-			//              std::cerr<< "Not delivered dependencies from Node "<<i<<" seq "<<processDependencies[idDest][i]<< " to " << m.dependencies[i]<<endl;
 			processDependencies[idDest][i] = max(m->dependencies[i], processDependencies[idDest][i]);
-		}
-		//throw"";
 	}
 	else
 	{
-		processDependencies[idDest][idM.id] = max(m->dependencies[idM.id], processDependencies[idDest][idM.id]); // increments local clock of idDest MUST BE MAX TO HANDLE THE CASE WHERE DELIVERED A MESSAGE OUT OF CAUSAL ORDER
-//        processDependencies[idDest][idM.id]++; // increments local clock of idDest
+		processDependencies[idDest][idM.id] = max(m->dependencies[idM.id], processDependencies[idDest][idM.id]); // increments local clock of idDest
 		if (m->psHasDelivered[idDest])
 		{
 			printDeliveryError("Multiple delivery", idM, idDest, m->dependencies, processDependencies[idDest]);
@@ -92,7 +77,7 @@ bool DeliveryController::notifyDeliverMessage(idMsg idM, unsigned int idDest)
 	m->deliveredAtNbPs++;
 	m->psHasDelivered[idDest] = true;
 	m->deliveredAtTime[idDest] = simTime();
-	if (m->deliveredAtNbPs == params->nbNodes) // delete le message car reçu par tous les mobiles ET stations
+	if (m->deliveredAtNbPs == params->nbNodes)
 		deleteMessage(idM);
 	return correctDelivery;
 }
@@ -100,7 +85,7 @@ bool DeliveryController::notifyDeliverMessage(idMsg idM, unsigned int idDest)
 void DeliveryController::printDeliveryError(string errorReason, idMsg idM, unsigned int destProcess,
 		TotalDependencies messageDependencies, TotalDependencies processDependencies)
 {
-	cerr << "BroadcastDeliveryController " << errorReason << " idMsg " << idM.id << "," << idM.seq << " destination "
+	cerr << "DeliveryController " << errorReason << " idMsg " << idM.id << "," << idM.seq << " destination "
 			<< destProcess << endl;
 	cerr << "Process clock: ";
 	processDependencies.printErr();
@@ -116,14 +101,16 @@ bool DeliveryController::canCausallyDeliverMessage(idMsg idM, unsigned int idDes
 
 void DeliveryController::deleteMessage(idMsg idM)
 {
-//    std::cerr<< "BROADCASTDeliveryController: DELETE MESSAGE (" << idM.id <<"," <<idM.seq<<")"<<endl;
 	vector<msg>::iterator it;
 	for (it = processBroadcastedMessages[idM.id].begin(); it != processBroadcastedMessages[idM.id].end(); ++it)
 		if (it->seq == idM.seq)
 			break;
 
 	if (it == processBroadcastedMessages[idM.id].end())
-		throw "Message not found";
+	{
+		cerr << "Message not found" << endl;
+		exit(1);
+	}
 	processBroadcastedMessages[idM.id].erase(it);
 	return;
 }

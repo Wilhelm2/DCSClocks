@@ -10,7 +10,7 @@ network DCS
         }
 
     submodules:
-		ut:Utilitaries;
+		ut:SimulationParameters;
 		Nodes [1000]: Node;
 		control : DeliveryController;
 		stat	: Stats;

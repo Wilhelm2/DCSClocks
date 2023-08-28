@@ -19,36 +19,41 @@ Define_Module(Stats);
 
 void Stats::initialize()
 {
-	ut = dynamic_cast<Utilitaries*>(getModuleByPath("DCS.ut"));
-	control = dynamic_cast<DeliveryController*>(getModuleByPath("DCS.control"));
+	ut = dynamic_cast<SimulationParameters*>(getModuleByPath("DCS.ut"));
 	for (unsigned int i = 0; i < ut->nbNodes; i++)
 		nodes.push_back(dynamic_cast<Node*>(getModuleByPath(("DCS.Nodes[" + to_string(i) + "]").c_str())));
 
-	scheduleAt(simTime() + *(new SimTime(1, SIMTIME_S)), new cMessage());
+	openFiles();
 
-// calcul = ln(2)*R/X avec R taille de l'horloge et X nombre de messages concurrents
-// X = nbMessagesPerSecond * channelDelay
-	float channelDelay = CHANNELDELAY / 1000000;
-	std::cerr << "channelDelay " << channelDelay << endl;
+	scheduleAt(simTime() + SimTime(1, SIMTIME_S), &timer);
+}
 
-	aloneNumbers.open("Graphs/data/aloneNumbers.dat", std::ios::out);
-	broadcastMessageTimeFile.open("Graphs/data/broadcastMessageTimeFile.dat", std::ios::out);
-	messageLoadFile.open("Graphs/data/messageLoadFile.dat", std::ios::out);
-	clockSizeFile.open("Graphs/data/clockSizeFile.dat", std::ios::out);
-	deliveriesFile.open("Graphs/data/deliveriesFile.dat", std::ios::out);
+void Stats::openFiles()
+{
+	string pathToFiles = "simulations/data/";
+	aloneNumbers.open(pathToFiles + "aloneNumbers.dat", std::ios::out);
+	messageLoadFile.open(pathToFiles + "messageLoadFile.dat", std::ios::out);
+	clockSizeFile.open(pathToFiles + "clockSizeFile.dat", std::ios::out);
+	deliveriesFile.open(pathToFiles + "deliveriesFile.dat", std::ios::out);
+}
 
-// test de la loi normale, que c'est bien distribué
-	/*int distribution[200];
-	 memset(distribution,0,sizeof(distribution));
-	 for(int i=0;i<100000;i++){
-	 int res=(*distributionChannelDelayImpair)(generatorChannelDelay)/10000 -10;
-	 distribution[res]++;
-	 }
-	 for(int i:distribution)
-	 cerr<<i<<"\t";
-	 cerr<<endl;
-	 exit(0);*/
+void Stats::handleMessage(cMessage *msg)
+{
+	std::cerr << "Time: " << simTime() << endl;
+	scheduleAt(simTime() + SimTime(1, SIMTIME_S), msg);
 
+	WriteMessageLoad();
+	WriteClockSize();
+	WriteFalseDeliveries();
+//	printErrNodeStats();
+//	printErrNbDeliveredMessages();
+//	printErrPendingMessages();
+	printErrIncrementedComponents();
+	if (simTime() == 850)
+	{
+		WriteAloneNumbers();
+		exit(0);
+	}
 }
 
 void Stats::WriteMessageLoad()
@@ -58,30 +63,27 @@ void Stats::WriteMessageLoad()
 
 void Stats::WriteClockSize()
 {
-	int clockSize = 1;
-	unsigned int activeComponents = 1;
-	float maxActiveComponents = 0;
+	unsigned int maxClockSize = 1;
+	unsigned int maxActiveComponents = 1;
 	float nbBroadcasts = 0;
-	int nbActiveWhenBroadcast = 0;
+	unsigned int activeComponentsWhenBroadcast = 0;
 	for (Node*n : nodes)
 	{
-		int nb = n->clockManagment.clock.size();
-		clockSize = max(clockSize, nb);
-		activeComponents = max(activeComponents, n->clockManagment.clock.activeComponents);
-		maxActiveComponents += n->clockManagment.clock.activeComponents;
+		maxClockSize = max(maxClockSize, n->clockManagment.clock.size());
+		maxActiveComponents = max(maxActiveComponents, n->clockManagment.clock.activeComponents);
 		nbBroadcasts += n->stat.nbBroadcasts;
 		n->stat.nbBroadcasts = 0;
-		nbActiveWhenBroadcast += n->stat.localActiveComponentsWhenBroadcast;
+		activeComponentsWhenBroadcast += n->stat.localActiveComponentsWhenBroadcast;
 		n->stat.localActiveComponentsWhenBroadcast = 0;
 	}
-	float avgComponents = (nbBroadcasts > 0 ? nbActiveWhenBroadcast / nbBroadcasts : 0);
-	clockSizeFile << simTime() << " " << clockSize << " " << activeComponents * ut->clockLength << " "
-			<< maxActiveComponents / ut->nbNodes * ut->clockLength << " " << avgComponents * ut->clockLength << endl;
+	float avgComponents = (nbBroadcasts > 0 ? activeComponentsWhenBroadcast / nbBroadcasts : 0);
+	clockSizeFile << simTime() << " " << maxClockSize << " " << maxActiveComponents * ut->clockLength << " "
+			<< maxActiveComponents << " " << avgComponents * ut->clockLength << endl;
 }
 
-void Stats::WriteDeliveries()
+void Stats::WriteFalseDeliveries()
 {
-	int falseDeliveredMsg = 0;
+	unsigned int falseDeliveredMsg = 0;
 	for (Node* n : nodes)
 		falseDeliveredMsg += n->stat.falseDeliveredMsg;
 
@@ -91,82 +93,61 @@ void Stats::WriteDeliveries()
 
 void Stats::WriteAloneNumbers()
 {
-	int totalMessages = 0;
-	int totalDeliveredMsg = 0;
-	float totalControlDataSize = 0;
-	float totalNbFalseDeliveries = 0;
+	unsigned int nbBroadcastedMsg = 0;
+	unsigned int nbDeliveredMsg = 0;
+	float controlDataSize = 0;
+	float nbFalseDeliveries = 0;
+
 	for (Node* n : nodes)
 	{
-		totalMessages += n->seq;
-		totalDeliveredMsg += n->stat.nbDeliveries;
-		totalControlDataSize += n->stat.controlDataSize;
-		totalNbFalseDeliveries += n->stat.falseDeliveredMsg;
+		nbBroadcastedMsg += n->seq;
+		nbDeliveredMsg += n->stat.nbDeliveries;
+		controlDataSize += n->stat.controlDataSize;
+		nbFalseDeliveries += n->stat.falseDeliveredMsg;
 	}
-	if (totalDeliveredMsg == 0)
-	{
+	if (nbDeliveredMsg == 0)
 		aloneNumbers << "0 0" << endl;
-		return;
-	}
-
-	aloneNumbers << totalControlDataSize / totalMessages << " " << totalNbFalseDeliveries / totalDeliveredMsg << endl;
-	std::cerr << "Number of false delivered messages " << totalNbFalseDeliveries << endl;
-	std::cerr << "RATE of false delivered messages " << totalNbFalseDeliveries / totalDeliveredMsg << endl;
-
+	else
+		aloneNumbers << controlDataSize / nbBroadcastedMsg << " " << nbFalseDeliveries / nbDeliveredMsg << endl;
+	std::cerr << "Number of false delivered messages " << nbFalseDeliveries << endl;
+	std::cerr << "false delivery rate" << nbFalseDeliveries / (nbDeliveredMsg == 0 ? 1 : nbDeliveredMsg) << endl;
 }
 
-void Stats::handleMessage(cMessage *msg)
+void Stats::printErrPendingMessages()
 {
+	cerr << "Number of pending messages per node" << endl;
+	for (Node* n : nodes)
+		cerr << n->pendingMsg.size() << "\t";
+	cerr << endl;
+}
 
-	std::cerr << "TIME " << simTime() << endl;
-	scheduleAt(simTime() + *(new SimTime(1, SIMTIME_S)), msg);
-//    for(int i=0;i<nbNodes;i++)
-//        control->printHorlogeErr(control->Horloges[i]);
+void Stats::printErrNbDeliveredMessages()
+{
+	cerr << "Number of delivered messages per node" << endl;
+	for (Node* n : nodes)
+		cerr << n->stat.nbDeliveries << endl;
+	cerr << endl;
+}
 
-	/*for(int j=0;j<nodes.size(); j++)
-	 {
-	 vector<int> res = nodes[j]->mostRecentMsg();
-	 std::cerr << "DEPENDANCES " << j << " : ";
-	 for(int i = 0 ; i<res.size();i++)
-	 std::cerr << res[i] << "\t";
-	 std:cerr << endl;
-	 }*/
-
+void Stats::printErrNodeStats()
+{
 	for (Node*n : nodes)
 		cerr << "node " << n->id << " pendingmsg " << n->pendingMsg.size() << " delivered " << n->delivered.size()
 				<< " receivedtime " << n->receivedTime.size() << "clock components " << n->clockManagment.clock.size()
 				<< " lcomponent " << n->clockManagment.nbLocalActiveComponents << " ccomponent "
 				<< n->clockManagment.clock.activeComponents << endl;
+}
 
-//	cerr << "NOMBRE DE DELIVERY/NOEUD" << endl;
-//	for (Node* n : nodes)
-//		cerr << n->stat.nbDeliveries << "\t";
-//	cerr << endl;
-//
-//	std::cerr << "pendingmsg size " << endl;
-//	for (Node* n : nodes)
-//	{
-//		if (n->pendingMsg.size() > 500)
-//			cerr << n->id << ":" << n->pendingMsg.size() << "\t";
-//		else
-//			cerr << n->pendingMsg.size() << "\t";
-//	}
-//	cerr << endl;
-	WriteMessageLoad();
-	WriteClockSize();
-	WriteDeliveries();
+void Stats::printErrIncrementedComponents()
+{
+	vector<unsigned int> countIncrComponents;
+	unsigned int maxComponents = 0;
+	for (Node*n : nodes)
+		maxComponents = max(maxComponents, n->clockManagment.clock.size());
 
-	if (simTime() == 300)
-	{
-		WriteAloneNumbers();
-		nodes[0]->clockManagment.clock.print();
-		vector<int> countIncrComponents;
-		countIncrComponents.resize(nodes[0]->clockManagment.clock.size(), 0);
-		for (Node* n : nodes)
-		{
-			countIncrComponents[n->clockManagment.incrComponent]++;
-		}
-		for (unsigned int i = 0; i < countIncrComponents.size(); i++)
-			cerr << i << ":" << countIncrComponents[i] << endl;
-		exit(0);
-	}
+	countIncrComponents.resize(maxComponents, 0);
+	for (Node* n : nodes)
+		countIncrComponents[n->clockManagment.incrComponent]++;
+	for (unsigned int i = 0; i < countIncrComponents.size(); i++)
+		cerr << i << ":" << countIncrComponents[i] << endl;
 }

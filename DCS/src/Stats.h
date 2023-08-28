@@ -25,36 +25,51 @@ using namespace omnetpp;
 
 class Node;
 
+// Takes the statistics, writes them into files and prints them on the error display
 class Stats: public cSimpleModule
 {
-protected:
+private:
 	virtual void initialize();
+	void openFiles();
 	virtual void handleMessage(cMessage *msg);
 
+	// File containing final simulation numbers
+	std::ofstream aloneNumbers;
+	// File containing the system's message load second per second
+	std::ofstream messageLoadFile;
+	// File containing information about the DCS clock sizes second per second
+	std::ofstream clockSizeFile;
+	// File containing the number of messages delivered out of causal order second per second
+	std::ofstream deliveriesFile;
+
+	// References to the system's nodes
 	vector<Node*> nodes;
-	DeliveryController* control;
-	Utilitaries* ut;
+	// Reference to the simulation parameters
+	SimulationParameters* ut;
+	// Timer to take statistics
+	cMessage timer;
 
 public:
 
-	void WriteTotalNbHashs();
+	// Writes the final simulation numbers to a file
 	void WriteAloneNumbers();
+	// Writes the control data to a file
 	void WriteControleDataSize();
+	// Writes the message load to a file
 	void WriteMessageLoad();
+	// Writes the clock sizes to a file
 	void WriteClockSize();
-	void WriteDeliveries();
+	// Writes the number of false delivered messages to a file
+	void WriteFalseDeliveries();
 
-	std::ofstream aloneNumbers;
-
-	std::ofstream broadcastMessageTimeFile;
-	std::ofstream messageLoadFile;
-	std::ofstream clockSizeFile;
-	std::ofstream deliveriesFile;
-
-	void incrementDelayIntervals(unsigned int entry);
-	void incrementMsgSize(unsigned int entry);
-	void incrementFalseDetected(unsigned int entry);
-	void incrementPlaceOfFalseDetected(unsigned int entry);
+	// Prints on the error display the number of pending messages for each node
+	void printErrPendingMessages();
+	// Prints on the error display the number of delivered messaes for each node
+	void printErrNbDeliveredMessages();
+	// Prints on the error display some stats about each node
+	void printErrNodeStats();
+	// Prints on the error display how many nodes increment every component of the system's DCS clock
+	void printErrIncrementedComponents();
 
 };
 

@@ -13,8 +13,8 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 //
 
-#ifndef __DYNAMICCLOCKSET_UTILITARIES_H_
-#define __DYNAMICCLOCKSET_UTILITARIES_H_
+#ifndef __DYNAMICCLOCKSET_SimulationParameters_H_
+#define __DYNAMICCLOCKSET_SimulationParameters_H_
 
 #include <omnetpp.h>
 #include <random>
@@ -25,21 +25,20 @@
 using namespace omnetpp;
 using namespace std;
 
-typedef struct sIdMsg
-{
-	unsigned int id;
-	unsigned int seq;
-} idMsg;
-
-class Utilitaries: public cSimpleModule
+// Contains the simulation parameters
+class SimulationParameters: public cSimpleModule
 {
 public:
 	virtual void initialize();
 	virtual void handleMessage(cMessage *msg);
+	// Computes the number of entries incremented by a process when broadcasting a message
 	unsigned int computeNbIncrementedEntries();
+	// Computes the entries incremented by each process when it broadcasts a message
 	vector<vector<unsigned int>> EvenCombinations(unsigned int N, unsigned int k, unsigned int M);
+	// Reads the simulation message load from a file. The message load may wary every second
 	void readLoadFromFile();
 
+	// Clock entries incremented by nodes when broadcasting a message
 	vector<vector<unsigned int>> clockEntries;
 
 	vector<int> channelRandNumber;
@@ -52,12 +51,16 @@ public:
 
 	std::normal_distribution<double>* sendDistribution = new std::normal_distribution<double>(0., 10000.);
 
-	double PEAKSPERDELAY;
+	// Number of nodes inside the system
 	unsigned int nbNodes;
+	// Clock length
 	unsigned int clockLength;
 
+	// Contains the message load for each simulation second, ie loadVector[i] contains the message load at second i
 	vector<unsigned int> loadVector;
+	// Contains the index of loadVector to read (ie nodes will read the message load in loadVector[indexLoad]
 	unsigned int indexLoad = 0;
+	// Time to schedule the next load modification
 	cMessage loadTimer;
 };
 

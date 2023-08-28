@@ -21,42 +21,55 @@
 #include <vector>
 #include <stdexcept>
 
+#include "SimulationParameters.h"
 #include "structures.h"
-#include "Utilitaries.h"
 #include "TotalDependencies.h"
 
 using namespace std;
 using namespace omnetpp;
 
+// Contains the information of a message relevant to ensure that every node delivers exactly once and in causal order
 typedef struct s_msg
 {
 	// id not required since struct belongs to a vector associated with the message's sending process
+	// The message's sequence number
 	unsigned int seq;
+	// The message's dependencies
 	TotalDependencies dependencies;
-	unsigned int deliveredAtNbPs = 0; // number of nodes that delivered the message
-	vector<bool> psHasDelivered; // array to control multiple deliveries
+	// Number of nodes that delivered the message
+	unsigned int deliveredAtNbPs = 0;
+	// Array to control multiple deliveries
+	vector<bool> psHasDelivered;
+	// The time at which the sender of the message broadcasted it
 	simtime_t sendTime;
+	//The time at which nodes delivered the message
 	vector<simtime_t> deliveredAtTime;
 } msg;
 
+// Controls that every nodes delivers every message exactly once and in causal order.
 class DeliveryController: public cSimpleModule
 {
 public:
-	DeliveryController();
-	virtual ~DeliveryController();
 	virtual void initialize(int stage);
+	// For the sender of a message to signal the boradcast
 	void notifySendMessage(unsigned int idSender, unsigned int seq);
 	vector<msg>::iterator searchMessage(idMsg idM);
+	// For the receivers of a message to signal their delivery of the message
 	bool notifyDeliverMessage(idMsg idM, unsigned int idDest);
+	// Prints the delivery error *errorReason* when the message is delivered out of causal order or multiple times
 	void printDeliveryError(string errorReason, idMsg idM, unsigned int destProcess,
 			TotalDependencies messageDependencies, TotalDependencies processDependencies);
+	// Determines whether the node idDest can causally deliver the message or not
 	bool canCausallyDeliverMessage(idMsg idM, unsigned int idDest);
 	void deleteMessage(idMsg idM);
 	bool isDependency(idMsg idM, idMsg idDep);
 
-	vector<vector<msg>> processBroadcastedMessages; // a vector of msg for each process
+	// Entry i contains the messages broadcasted by node i that have not yet been delivered by all nodes
+	vector<vector<msg>> processBroadcastedMessages;
+	// Entry i contains the dependencies of the next message that node i will broadcast
 	vector<TotalDependencies> processDependencies;
-	Utilitaries* params;
+	// Reference to the simulation parameters
+	SimulationParameters* params;
 };
 
 Define_Module(DeliveryController);
