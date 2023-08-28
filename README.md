@@ -24,7 +24,8 @@ Causal order ensures that any two causally related messages are delivered to app
 
 # Dynamic Clock Sets (DCS clocks)
 
-DCS clocks[[3]] are logical clocks composed of Probabilistic clocks[[2]], as shown in the Figure below: 
+DCS clocks [[3]] are logical clocks composed of Probabilistic clocks [[2]], as shown in the Figure below: 
+
 ![Example of DCS clock](readmeFigures/DCS.jpeg?raw=true)
 
 The main feature of DCS clocks over Probabilistic ones is that their size can be modified during execution. 
