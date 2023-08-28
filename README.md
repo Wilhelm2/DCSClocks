@@ -28,8 +28,6 @@ DCS clocks [[3]](https://hal.science/hal-03984499) are logical clocks composed o
 
 <img src="readmeFigures/DCS.jpeg" width=150% height=150%>
 
-![Example of DCS clock](readmeFigures/DCS.jpeg?raw=true)
-
 The main feature of DCS clocks over Probabilistic ones is that their size can be modified during execution. 
 The size of a DCS clock can be modified by adding and removing components to the clock. 
 The clock clockManagement manages the DCS clock of processes. 
