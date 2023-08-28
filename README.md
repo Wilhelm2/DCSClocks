@@ -24,7 +24,9 @@ Causal order ensures that any two causally related messages are delivered to app
 
 # Dynamic Clock Sets (DCS clocks)
 
-DCS clocks [[3]] are logical clocks composed of Probabilistic clocks [[2]], as shown in the Figure below: 
+DCS clocks [[3]](https://hal.science/hal-03984499) are logical clocks composed of Probabilistic clocks [[2]](https://link.springer.com/chapter/10.1007/978-3-319-62932-2_31), as shown in the Figure below: 
+
+<img src="readmeFigures/DCS.jpeg" width=150% height=150%>
 
 ![Example of DCS clock](readmeFigures/DCS.jpeg?raw=true)
 
@@ -34,7 +36,7 @@ The clock clockManagement manages the DCS clock of processes.
 
 The size of DCS clocks should notably be set following the number of concurrent messages inside the system, which depends on the communication patterns and message load of the system. In the simulation we set the communication pattern and vary the message load to modify the number of concurrent messages inside the system. 
 
-A more detailed explanation about DCS clocks can be found here [[3]].
+A more detailed explanation about DCS clocks can be found here [[3]](https://hal.science/hal-03984499).
 
 # OMNeT++
 
